@@ -1,8 +1,10 @@
 /* ============================================================
-   core.css — Base Rules and Layout Architecture
+   core.css — Base Rules and Layout Architecture (Dark Field Kit)
    ============================================================ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -14,19 +16,38 @@ body {
   color: var(--color-text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+
+  /* Retaining grid blueprint look from components.css override */
+  background-image:
+    linear-gradient(to right, rgba(46, 56, 50, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(46, 56, 50, 0.2) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
   font-weight: 600;
   color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  /* Sleek, compressed heading layout */
 }
 
 a {
   color: var(--color-accent);
   text-decoration: none;
+  font-family: var(--font-mono);
+  /* Technical link structure */
+  font-size: 0.9em;
   transition: var(--transition-base);
 }
+
 a:hover {
+  color: var(--color-accent-hover);
   text-decoration: underline;
 }
 
@@ -34,29 +55,36 @@ a:hover {
 .app-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem 1rem;
+  /* Margins compressed tightly for outdoor telemetry work */
 }
 
 /* Master Form Inputs Controls */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
 }
 
 .field label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-text-label);
+  font-family: var(--font-mono);
+  /* Field tracking label typography */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
 }
 
 input[type="text"],
 input[type="email"],
-input[type="password"] {
-  font-family: inherit;
-  font-size: 0.95rem;
-  padding: 0.75rem 0.9rem;
+input[type="password"],
+select,
+textarea {
+  font-family: var(--font-mono);
+  /* All inputs enforce programmatic type setting */
+  font-size: 0.9rem;
+  padding: 0.65rem 0.8rem;
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -64,11 +92,14 @@ input[type="password"] {
   transition: var(--transition-base);
 }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--color-border-focus);
   background: var(--color-surface);
-  box-shadow: 0 0 0 3px var(--color-accent-dim);
+  box-shadow: 0 0 0 2px var(--color-accent-dim);
+  /* Tighter focus ring prevents pixel bleed */
 }
 
 /* Global Button Architectures */
@@ -78,44 +109,68 @@ input:focus {
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.8rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   background: var(--color-accent);
   color: var(--color-accent-text);
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 0.95rem;
+  font-family: var(--font-mono);
+  /* Monospace buttons for utility system aesthetics */
+  font-size: 0.9rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   cursor: pointer;
   transition: var(--transition-base);
 }
 
-.btn-primary:hover { background: var(--color-accent-hover); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn-primary:disabled {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.2rem;
+  padding: 0.7rem 1.2rem;
   background: var(--color-surface);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-base);
 }
-.btn-secondary:hover { background: var(--color-surface-alt); border-color: var(--color-text-muted); }
+
+.btn-secondary:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-text-muted);
+}
 
 /* System Load Spinners */
 .spinner {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--color-accent-dim);
   border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: spin 0.5s linear infinite;
+  /* Slightly accelerated rate for responsive confirmation */
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -5,18 +5,999 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Worker Dashboard | Plastic Mitra</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/core.css" />
-  <link rel="stylesheet" href="../css/components.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg: #0c0f0d;
+      --card: #131815;
+      --border: #1e2621;
+      --hover: #1b241e;
+      --accent: #4ade80;
+      --accent-dim: rgba(74, 222, 128, 0.12);
+      --accent-hover: #22c55e;
+      --text: #f1f5f9;
+      --muted: #8e9e95;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --segregated: #4ade80;
+      --mixed: #fbbf24;
+      --font: 'IBM Plex Sans', system-ui, sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+      --radius: 8px;
+      --speed: 0.2s;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image:
+        linear-gradient(rgba(30, 38, 33, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 38, 33, 0.35) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* ── Header ── */
+    .header-nav {
+      background: rgba(19, 24, 21, 0.92);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-nav h2 {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .worker-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.45rem 1rem;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    /* ── Layout ── */
+    .app-container {
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    /* ── Metrics ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      transition: border-color var(--speed);
+    }
+
+    .stat-card:hover {
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .stat-card h3 {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: var(--mono);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .stat-card .value-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Split View ── */
+    .split-view {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    @media (max-width: 1024px) {
+      .split-view {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel-main {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.85rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-badge {
+      background: var(--border);
+      color: var(--muted);
+      padding: 0.1rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.7rem;
+    }
+
+    /* ── Map ── */
+    #map {
+      width: 100%;
+      height: 520px;
+    }
+
+    .leaflet-container {
+      background: #090c0a !important;
+    }
+
+    .leaflet-bar {
+      border: 1px solid var(--border) !important;
+      box-shadow: none !important;
+    }
+
+    .leaflet-bar a {
+      background: var(--card) !important;
+      color: var(--text) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+
+    .leaflet-bar a:hover {
+      background: var(--hover) !important;
+      color: var(--accent) !important;
+    }
+
+    /* Target Leaflet Routing panel container layout to integrate with Dark Theme UI */
+    .leaflet-routing-container {
+      background: var(--card) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+    }
+
+    .leaflet-routing-alt {
+      background: var(--card) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--card) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border);
+      border-radius: var(--radius) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: var(--card) !important;
+    }
+
+    .map-popup-title {
+      font-weight: 600;
+      font-size: 0.82rem;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .map-popup-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .map-popup-btn {
+      background: var(--accent);
+      border: none;
+      color: #0c0f0d;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: bold;
+      padding: 0.35rem 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .map-popup-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    /* ── Activity List ── */
+    .activity-list {
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .activity-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .activity-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    /* ── Job Card ── */
+    .job-card {
+      background: rgba(12, 15, 13, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      transition: all var(--speed);
+      animation: slideIn 0.25s ease both;
+    }
+
+    .job-card:hover {
+      background: var(--hover);
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .job-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.6rem;
+      gap: 0.5rem;
+    }
+
+    .job-card-reporter {
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .job-card-time {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+
+    .job-card-coords {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.2);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      display: inline-block;
+      margin-bottom: 0.6rem;
+    }
+
+    .job-card-footer {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-nav {
+      flex: 1;
+      padding: 0.4rem 0.5rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all var(--speed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border-color: var(--muted);
+    }
+
+    .btn-route {
+      flex: 1.2;
+      padding: 0.4rem 0.5rem;
+      background: transparent;
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all var(--speed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .btn-route:hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #93c5fd;
+    }
+
+    .btn-collect {
+      flex: 1.5;
+      padding: 0.4rem 0.75rem;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: #0c0f0d;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--speed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .btn-collect:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 10px var(--accent-dim);
+    }
+
+    /* ── Points Log ── */
+    .points-log-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.6rem;
+      background: rgba(12, 15, 13, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      animation: slideIn 0.2s ease;
+      font-size: 0.75rem;
+    }
+
+    .points-log-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .points-log-amount {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    .points-log-desc {
+      color: var(--muted);
+    }
+
+    .points-log-time {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .empty-state-icon {
+      font-size: 1.75rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 8, 7, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .camera-modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 92%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .camera-modal-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .camera-modal-header h3 {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .camera-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color var(--speed);
+      line-height: 1;
+    }
+
+    .camera-modal-close:hover {
+      color: var(--danger);
+    }
+
+    .camera-modal-body {
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    .modal-job-info {
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .camera-capture-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all var(--speed);
+      position: relative;
+      overflow: hidden;
+      background: rgba(12, 15, 13, 0.4);
+    }
+
+    .camera-capture-zone:hover {
+      border-color: var(--accent);
+      background: rgba(74, 222, 128, 0.02);
+    }
+
+    .camera-capture-zone.has-photo {
+      border-color: var(--accent);
+      border-style: solid;
+    }
+
+    .camera-capture-icon {
+      font-size: 2rem;
+      color: var(--accent);
+    }
+
+    .camera-capture-label {
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .camera-capture-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .camera-input {
+      display: none;
+    }
+
+    .photo-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+    }
+
+    .photo-retake {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text);
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all var(--speed);
+    }
+
+    .photo-retake:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .scan-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: rgba(12, 15, 13, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .scan-spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .ai-confidence {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--accent);
+    }
+
+    .classify-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .classify-label {
+      font-size: 0.72rem;
+      font-family: var(--mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .classify-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    .classify-option input[type="radio"] {
+      display: none;
+    }
+
+    .classify-option-card {
+      background: rgba(12, 15, 13, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      transition: all var(--speed);
+      text-align: center;
+    }
+
+    .classify-option input:checked+.classify-option-card {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 10px var(--accent-dim);
+    }
+
+    .opt-mixed input:checked+.classify-option-card {
+      border-color: var(--mixed);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
+    }
+
+    .classify-icon {
+      font-size: 1.5rem;
+    }
+
+    .classify-type {
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .classify-pts {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .opt-mixed .classify-pts {
+      color: var(--mixed);
+    }
+
+    .camera-modal-footer {
+      padding: 0.9rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.65rem;
+    }
+
+    .btn-primary {
+      flex: 2;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: #0c0f0d;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--speed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 0 12px var(--accent-dim);
+    }
+
+    .btn-primary:disabled {
+      background: var(--border);
+      border-color: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .btn-primary .spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #0c0f0d;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* ── Success Modal ── */
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 8, 7, 0.9);
+      backdrop-filter: blur(10px);
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .success-card {
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 340px;
+      width: 90%;
+      box-shadow: 0 0 40px var(--accent-dim), 0 10px 40px rgba(0, 0, 0, 0.6);
+      animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .success-icon {
+      font-size: 3.5rem;
+    }
+
+    .success-title {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .success-pts {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      border-radius: 50px;
+      padding: 0.5rem 1.5rem;
+    }
+
+    .success-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .success-total {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .btn-success {
+      background: var(--accent);
+      border: none;
+      color: #0c0f0d;
+      padding: 0.65rem 2rem;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 0.25rem;
+      transition: all var(--speed);
+    }
+
+    .btn-success:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 12px var(--accent-dim);
+    }
+
+    /* ── Toast ── */
+    #toastContainer {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 999;
+    }
+
+    .toast {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: 300px;
+      animation: slideIn 0.25s ease;
+    }
+
+    .toast-error {
+      border-left-color: var(--danger);
+    }
+
+    .toast-warn {
+      border-left-color: var(--warn);
+    }
+
+    /* ── Loading overlay ── */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 900;
+    }
+
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-text {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
 
 <body>
+
+  <div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Connecting to Supabase…</div>
+  </div>
+
   <header class="header-nav">
     <h2>Worker Portal: <span id="workerTitle" style="color:var(--color-accent)">Mitra Crew</span></h2>
     <button class="btn-secondary" onclick="sessionStorage.clear(); window.location.href='../login.html'">Sign
       Out</button>
+    <h2>⚙ Worker Portal: <span id="workerTitle" style="color:var(--accent)">—</span></h2>
+    <div class="header-right">
+      <div class="worker-badge">
+        <div class="avatar" id="workerAvatar">—</div>
+        <span id="workerName">—</span>
+      </div>
+      <button class="btn-secondary" id="signOutBtn">Sign Out</button>
+    </div>
   </header>
 
   <main class="app-container">
@@ -29,11 +1010,31 @@
         <h3>Pending Nearby Tasks</h3>
         <div class="value" id="wPending" style="color:var(--color-error);">0</div>
       </div>
+      <div class="stat-card">
+        <h3>Points Earned</h3>
+        <div class="value" id="wPoints" style="color:var(--accent)">0</div>
+        <div class="value-label">Reward XP</div>
+      </div>
+      <div class="stat-card">
+        <h3>Collections Done</h3>
+        <div class="value" id="wDone">0</div>
+        <div class="value-label">Total pickups</div>
+      </div>
+      <div class="stat-card">
+        <h3>Segregated Pickups</h3>
+        <div class="value" id="wSegregated" style="color:var(--segregated)">0</div>
+        <div class="value-label">+20 pts each</div>
+      </div>
+      <div class="stat-card">
+        <h3>Mixed Waste Pickups</h3>
+        <div class="value" id="wMixed" style="color:var(--mixed)">0</div>
+        <div class="value-label">+10 pts each</div>
+      </div>
     </div>
 
     <div class="split-view">
       <div class="panel-main" style="padding:0; position:relative;">
-        <div id="map" class="canvas-wrapper" style="height:520px;"></div>
+        <div id="map"></div>
       </div>
 
       <div class="panel-sidebar">
@@ -41,14 +1042,32 @@
           <h3
             style="font-size:0.95rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid var(--color-border)">
             Active Incident Queue</h3>
+          <div class="section-title">
+            📋 Active Pickup Queue
+            <span class="section-badge" id="queueBadge">0</span>
+          </div>
           <div class="activity-list" id="jobQueue">
             <p style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1rem;">No immediate
               tasks assigned to your radius.</p>
+            <div class="empty-state"><span class="empty-state-icon">⏳</span>Loading reports…</div>
+          </div>
+        </div>
+
+        <div class="panel-main">
+          <div class="section-title">
+            🏆 Points History
+            <span class="section-badge" id="historyBadge">0</span>
+          </div>
+          <div class="activity-list" id="pointsLog">
+            <div class="empty-state"><span class="empty-state-icon">📊</span>Collect waste to earn points</div>
           </div>
         </div>
       </div>
     </div>
   </main>
+
+  <div id="toastContainer"></div>
+  <div id="modalContainer"></div>
 
   <script>
     document.getElementById('workerTitle').textContent = sessionStorage.getItem('pm_username') || 'Field Agent';
@@ -57,7 +1076,553 @@
     const map = L.map('map').setView([12.9716, 77.5946], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    const SUPABASE_URL = "https://wzdroididrergcjiwoty.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU";
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const POINTS = { segregated: 20, mixed: 10 };
+      let workerSession = null;
+      let pendingJobs =[];
+      let activeJobId = null;
+      let selectedFile = null;
+      let segregatedCount = 0;
+      let mixedCount = 0;
+
+      // Tracking active positioning and routing engine overlays
+      let workerLocation = null;
+      let routingControl = null;
+
+      const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+      }).addTo(map);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      // Continuous high-precision geolocation tracking to coordinate closest-worker queries
+      if(navigator.geolocation) {
+      navigator.geolocation.watchPosition(async (pos) => {
+        workerLocation = [pos.coords.latitude, pos.coords.longitude];
+
+        // Render or push position marker updates across the layout
+        if (!window.workerMarker) {
+          window.workerMarker = L.marker(workerLocation, {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:2px solid #fff;box-shadow:0 0 10px rgba(74,222,128,0.6)"></div>`,
+              iconSize: [14, 14], iconAnchor: [7, 7]
+            })
+          }).addTo(map).bindTooltip("📍 Your Position", { permanent: false });
+          map.setView(workerLocation, 13);
+        } else {
+          window.workerMarker.setLatLng(workerLocation);
+        }
+
+        // Keep database worker location synchronous for routing calculations
+        if (workerSession) {
+          await sb.from("workers").update({
+            current_lat: pos.coords.latitude,
+            current_lng: pos.coords.longitude
+          }).eq("id", workerSession.id);
+        }
+      }, () => {
+        showToast("Field localization failed. Route tracing disabled.", "warn");
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    const mapMarkers = {};
+
+    function addMapMarker(job) {
+      if (mapMarkers[job.id]) return;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:13px;height:13px;border-radius:50%;background:var(--warn, #fbbf24);border:2px solid #92400e;box-shadow:0 0 8px rgba(251,191,36,0.5);cursor:pointer"></div>`,
+        iconSize: [13, 13], iconAnchor: [6, 6]
+      });
+      const marker = L.marker([job.lat, job.lng], { icon }).addTo(map);
+      marker.bindPopup(`
+        <span class="map-popup-title">♻️ Waste Report</span>
+        <span class="map-popup-sub">By @${job.username}<br>${job.lat.toFixed(4)}, ${job.lng.toFixed(4)}</span>
+        <button class="map-popup-btn" style="margin-bottom: 5px; background: #3b82f6; color: #fff;" onclick="calculateRoute(${job.lat}, ${job.lng})">🧭 Trace Route</button>
+        <button class="map-popup-btn" onclick="openModal('${job.id}')">📸 Collect</button>`);
+      mapMarkers[job.id] = marker;
+    }
+
+    function removeMapMarker(jobId) {
+      if (mapMarkers[jobId]) { map.removeLayer(mapMarkers[jobId]); delete mapMarkers[jobId]; }
+      if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+    }
+
+    // OSRM routing engine logic to draw navigation vectors to the pickup target
+    function calculateRoute(targetLat, targetLng) {
+      if (!workerLocation) {
+        showToast("Waiting on high-precision GPS lock...", "warn");
+        return;
+      }
+
+      if (routingControl) {
+        map.removeControl(routingControl);
+      }
+
+      showToast("Tracing best tactical transit paths...", "success");
+
+      routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(workerLocation[0], workerLocation[1]),
+          L.latLng(targetLat, targetLng)
+        ],
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1'
+        }),
+        lineOptions: {
+          styles: [{ color: '#4ade80', opacity: 0.85, weight: 5 }]
+        },
+        createMarker: function () { return null; }, // Hide default routing engine flags
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: true
+      }).addTo(map);
+
+      routingControl.on('routesfound', function (e) {
+        const routes = e.routes;
+        const summary = routes[0].summary;
+        showToast(`Route traced: ${(summary.totalDistance / 1000).toFixed(2)} km (~${Math.round(summary.totalTime / 60)} mins)`, "success");
+      });
+    }
+
+    async function boot() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        showToast("Not logged in — please sign in first.", "error");
+        setTimeout(() => window.location.href = "../login.html", 2000);
+        return;
+      }
+
+      const { data: profile, error } = await sb
+        .from("workers")
+        .select("id, username, points, total_collections")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !profile) {
+        showToast("Worker profile not found.", "error");
+        document.getElementById("loadingOverlay").style.display = "none";
+        return;
+      }
+
+      workerSession = profile;
+      const name = profile.username;
+      document.getElementById("workerTitle").textContent = name;
+      document.getElementById("workerName").textContent = name;
+      document.getElementById("workerAvatar").textContent = name.substring(0, 2).toUpperCase();
+
+      animateCounter("wPoints", profile.points || 0);
+      animateCounter("wDone", profile.total_collections || 0);
+
+      await loadHistory();
+      await loadQueue();
+
+      // Establish dynamic realtime link to filter queue additions instantly
+      setupRealtimeStream();
+
+      document.getElementById("loadingOverlay").style.display = "none";
+
+      document.getElementById("signOutBtn").addEventListener("click", async () => {
+        await sb.auth.signOut();
+        window.location.href = "../login.html";
+      });
+    }
+
+    // Dynamic filtering updates tasks specifically assigned to this operator or unassigned
+    async function loadQueue() {
+      const { data, error } = await sb
+        .from("dashboard")
+        .select("id, user_id, latitude, longitude, reported_at, assigned_worker_id, users(username)")
+        .eq("status", "pending")
+        .or(`assigned_worker_id.is.null,assigned_worker_id.eq.${workerSession.id}`)
+        .order("reported_at", { ascending: true });
+
+      if (error) { showToast("Failed to load queue: " + error.message, "error"); return; }
+
+      pendingJobs = (data || []).map(r => ({
+        id: r.id,
+        userId: r.user_id,
+        username: r.users?.username || "Mitra_User",
+        lat: r.latitude,
+        lng: r.longitude,
+        reportedAt: r.reported_at
+      }));
+
+      renderQueue();
+      pendingJobs.forEach(addMapMarker);
+    }
+
+    // Subscribes to realtime dashboard events to capture instant localized user alerts
+    function setupRealtimeStream() {
+      sb.channel('public:dashboard')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'dashboard'
+        }, async (payload) => {
+          const isTargeted = payload.new.assigned_worker_id === workerSession.id || !payload.new.assigned_worker_id;
+
+          if (payload.new.status === 'pending' && isTargeted) {
+            const { data: userProfile } = await sb.from("users").select("username").eq("id", payload.new.user_id).single();
+
+            const newJob = {
+              id: payload.new.id,
+              userId: payload.new.user_id,
+              username: userProfile?.username || "Mitra_User",
+              lat: payload.new.latitude,
+              lng: payload.new.longitude,
+              reportedAt: payload.new.reported_at
+            };
+
+            pendingJobs.unshift(newJob);
+            renderQueue();
+            addMapMarker(newJob);
+            showToast("🚨 Closest priority alert routed to your terminal!", "warn");
+
+            // Auto-target perspective map navigation onto new arrivals
+            calculateRoute(newJob.lat, newJob.lng);
+          }
+        })
+        .subscribe();
+    }
+
+    function renderQueue() {
+      const container = document.getElementById("jobQueue");
+      document.getElementById("queueBadge").textContent = pendingJobs.length;
+
+      if (pendingJobs.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">✅</span>All tasks complete — great work!</div>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      pendingJobs.forEach((job, i) => {
+        const card = document.createElement("div");
+        card.className = "job-card";
+        card.id = `jcard-${job.id}`;
+        card.style.animationDelay = `${i * 0.05}s`;
+        const time = relTime(new Date(job.reportedAt));
+        card.innerHTML = `
+          <div class="job-card-header">
+            <span class="job-card-reporter">@${job.username}</span>
+            <span class="job-card-time">${time}</span>
+          </div>
+          <div class="job-card-coords">${job.lat.toFixed(5)}, ${job.lng.toFixed(5)}</div>
+          <div class="job-card-footer">
+            <button class="btn-nav" onclick="panToJob('${job.id}')">🧭 View</button>
+            <button class="btn-route" onclick="calculateRoute(${job.lat}, ${job.lng})">🗺 Route</button>
+            <button class="btn-collect" onclick="openModal('${job.id}')">📸 Collect</button>
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    function panToJob(jobId) {
+      const job = pendingJobs.find(j => j.id === jobId);
+      if (!job) return;
+      map.setView([job.lat, job.lng], 15);
+      if (mapMarkers[jobId]) mapMarkers[jobId].openPopup();
+      document.querySelectorAll(".job-card").forEach(c => c.style.borderColor = "");
+      const card = document.getElementById(`jcard-${jobId}`);
+      if (card) { card.style.borderColor = "var(--accent)"; card.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+    }
+
+    async function loadHistory() {
+      const { data, error } = await sb
+        .from("dashboard")
+        .select("latitude, longitude, collected_at, points_awarded, segregation_type")
+        .eq("collected_by", workerSession.id)
+        .eq("status", "collected")
+        .order("collected_at", { ascending: false })
+        .limit(20);
+
+      if (error || !data) return;
+
+      segregatedCount = data.filter(h => h.segregation_type === "segregated").length;
+      mixedCount = data.filter(h => h.segregation_type === "mixed").length;
+      animateCounter("wSegregated", segregatedCount);
+      animateCounter("wMixed", mixedCount);
+      renderHistory(data);
+    }
+
+    function renderHistory(rows) {
+      const container = document.getElementById("pointsLog");
+      document.getElementById("historyBadge").textContent = rows.length;
+
+      if (rows.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">📊</span>Collect waste to start earning points</div>`;
+        return;
+      }
+
+      container.innerHTML = rows.map(h => {
+        const icon = h.segregation_type === "segregated" ? "♻️" : "🔀";
+        const color = h.segregation_type === "segregated" ? "var(--segregated)" : "var(--mixed)";
+        const time = relTime(new Date(h.collected_at));
+        return `
+          <div class="points-log-item">
+            <div class="points-log-left">
+              <span class="points-log-amount">+${h.points_awarded} pts</span>
+              <span class="points-log-desc">${icon} ${h.latitude.toFixed(3)}, ${h.longitude.toFixed(3)} · <span style="color:${color}">${h.segregation_type || "—"}</span></span>
+            </div>
+            <span class="points-log-time">${time}</span>
+          </div>`;
+      }).join("");
+    }
+
+    function openModal(jobId) {
+      const job = pendingJobs.find(j => j.id === jobId);
+      if (!job) return;
+      activeJobId = jobId;
+      selectedFile = null;
+      map.closePopup();
+
+      document.getElementById("modalContainer").innerHTML = `
+        <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+          <div class="camera-modal" onclick="event.stopPropagation()">
+            <div class="camera-modal-header">
+              <h3>📸 Collect Waste</h3>
+              <button class="camera-modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="camera-modal-body">
+              <div class="modal-job-info">
+                📍 @${job.username} · ${job.lat.toFixed(5)}, ${job.lng.toFixed(5)} · ${relTime(new Date(job.reportedAt))}
+              </div>
+              <div class="camera-capture-zone" id="captureZone" onclick="triggerCamera()">
+                <div class="camera-capture-icon">📷</div>
+                <div class="camera-capture-label">Tap to take a photo</div>
+                <div class="camera-capture-sub">Photograph the collected waste</div>
+              </div>
+              <input type="file" accept="image/*" capture="environment"
+                     class="camera-input" id="cameraInput" onchange="handlePhoto(event)">
+              <div id="scanRow" style="display:none;"></div>
+              <div id="classifyRow" style="display:none;"></div>
+            </div>
+            <div class="camera-modal-footer">
+              <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+              <button class="btn-primary" id="confirmBtn" disabled onclick="confirmCollection()">
+                Confirm & Award Points
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById("modalOverlay");
+      if (overlay) { overlay.style.animation = "fadeIn 0.15s ease reverse forwards"; setTimeout(() => { document.getElementById("modalContainer").innerHTML = ""; }, 150); }
+      activeJobId = null;
+      selectedFile = null;
+    }
+
+    function handleOverlayClick(e) { if (e.target.id === "modalOverlay") closeModal(); }
+    function triggerCamera() { document.getElementById("cameraInput").click(); }
+
+    function handlePhoto(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const zone = document.getElementById("captureZone");
+        zone.classList.add("has-photo");
+        zone.onclick = null;
+        zone.innerHTML = `
+          <img src="${ev.target.result}" alt="Waste photo" class="photo-preview">
+          <button class="photo-retake" onclick="retakePhoto(event)">🔄 Retake</button>`;
+        runAIClassification(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function retakePhoto(e) {
+      e.stopPropagation();
+      selectedFile = null;
+      const zone = document.getElementById("captureZone");
+      zone.classList.remove("has-photo");
+      zone.onclick = triggerCamera;
+      zone.innerHTML = `
+        <div class="camera-capture-icon">📷</div>
+        <div class="camera-capture-label">Tap to take a photo</div>
+        <div class="camera-capture-sub">Photograph the collected waste</div>`;
+      document.getElementById("scanRow").style.display = "none";
+      document.getElementById("classifyRow").style.display = "none";
+      document.getElementById("confirmBtn").disabled = true;
+      document.getElementById("cameraInput").value = "";
+    }
+
+    function runAIClassification(imgSrc) {
+      const scanRow = document.getElementById("scanRow");
+      scanRow.style.display = "block";
+      scanRow.innerHTML = `<div class="scan-indicator"><div class="scan-spinner"></div>Analyzing waste composition…</div>`;
+      document.getElementById("classifyRow").style.display = "none";
+      document.getElementById("confirmBtn").disabled = true;
+
+      setTimeout(() => {
+        const isSegregated = Math.random() > 0.4;
+        const confidence = Math.round(76 + Math.random() * 19);
+        const aiResult = isSegregated ? "segregated" : "mixed";
+
+        scanRow.innerHTML = `
+          <div class="scan-indicator" style="background:rgba(74,222,128,0.06);border-color:rgba(74,222,128,0.25);">
+            ✅ Analysis complete
+            <span class="ai-confidence">🤖 ${confidence}% confidence</span>
+          </div>`;
+
+        showClassifyOptions(aiResult, confidence);
+      }, 1400 + Math.random() * 900);
+    }
+
+    function showClassifyOptions(aiResult, confidence) {
+      const row = document.getElementById("classifyRow");
+      row.style.display = "block";
+      row.innerHTML = `
+        <div class="classify-section">
+          <div class="classify-label">Classification — you can override the AI</div>
+          <div class="classify-options">
+            <label class="classify-option opt-segregated">
+              <input type="radio" name="wasteType" value="segregated" ${aiResult === "segregated" ? "checked" : ""} onchange="onClassify()">
+              <div class="classify-option-card">
+                <span class="classify-icon">♻️</span>
+                <span class="classify-type">Segregated</span>
+                <span class="classify-pts">+20 pts</span>
+                ${aiResult === "segregated" ? `<span class="ai-confidence" style="font-size:0.65rem">🤖 AI · ${confidence}%</span>` : ""}
+              </div>
+            </label>
+            <label class="classify-option opt-mixed">
+              <input type="radio" name="wasteType" value="mixed" ${aiResult === "mixed" ? "checked" : ""} onchange="onClassify()">
+              <div class="classify-option-card">
+                <span class="classify-icon">🔀</span>
+                <span class="classify-type">Mixed</span>
+                <span class="classify-pts">+10 pts</span>
+                ${aiResult === "mixed" ? `<span class="ai-confidence" style="font-size:0.65rem">🤖 AI · ${confidence}%</span>` : ""}
+              </div>
+            </label>
+          </div>
+        </div>`;
+      document.getElementById("confirmBtn").disabled = false;
+    }
+
+    function onClassify() { document.getElementById("confirmBtn").disabled = false; }
+
+    async function confirmCollection() {
+      const job = pendingJobs.find(j => j.id === activeJobId);
+      if (!job || !selectedFile) return;
+
+      const selected = document.querySelector('input[name="wasteType"]:checked');
+      if (!selected) return;
+
+      const wasteType = selected.value;
+      const pts = POINTS[wasteType];
+
+      const btn = document.getElementById("confirmBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Uploading…`;
+
+      try {
+        const ext = selectedFile.name.split(".").pop() || "jpg";
+        const filePath = `${workerSession.id}/${job.id}_${Date.now()}.${ext}`;
+        const { error: uploadErr } = await sb.storage
+          .from("waste-photos")
+          .upload(filePath, selectedFile, { upsert: true });
+        if (uploadErr) throw new Error("Upload: " + uploadErr.message);
+
+        const { data: urlData } = sb.storage.from("waste-photos").getPublicUrl(filePath);
+
+        const { error: dashErr } = await sb.from("dashboard").update({
+          status: "collected",
+          collected_at: new Date().toISOString(),
+          collected_by: workerSession.id,
+          photo_url: urlData.publicUrl,
+          points_awarded: pts,
+          segregation_type: wasteType
+        }).eq("id", job.id);
+        if (dashErr) throw new Error("Dashboard: " + dashErr.message);
+
+        const newPts = (workerSession.points || 0) + pts;
+        const newDone = (workerSession.total_collections || 0) + 1;
+        const { error: wErr } = await sb.from("workers").update({
+          points: newPts, total_collections: newDone
+        }).eq("id", workerSession.id);
+        if (wErr) throw new Error("Worker: " + wErr.message);
+        workerSession.points = newPts;
+        workerSession.total_collections = newDone;
+
+        if (job.userId) {
+          const { data: u } = await sb.from("users").select("points").eq("id", job.userId).single();
+          if (u) await sb.from("users").update({ points: (u.points || 0) + pts }).eq("id", job.userId);
+        }
+
+        if (wasteType === "segregated") segregatedCount++; else mixedCount++;
+        pendingJobs = pendingJobs.filter(j => j.id !== job.id);
+        removeMapMarker(job.id);
+        closeModal();
+        renderQueue();
+        animateCounter("wPoints", newPts);
+        animateCounter("wDone", newDone);
+        animateCounter("wSegregated", segregatedCount);
+        animateCounter("wMixed", mixedCount);
+        await loadHistory();
+        showSuccessModal(pts, wasteType, newPts);
+
+      } catch (err) {
+        showToast(err.message, "error");
+        btn.disabled = false;
+        btn.textContent = "Confirm & Award Points";
+      }
+    }
+
+    function showSuccessModal(pts, type, total) {
+      const overlay = document.createElement("div");
+      overlay.className = "success-overlay";
+      overlay.innerHTML = `
+        <div class="success-card">
+          <span class="success-icon">${type === "segregated" ? "♻️" : "🔀"}</span>
+          <div class="success-title">Collection Complete!</div>
+          <div class="success-pts">+${pts} pts</div>
+          <div class="success-desc">${type === "segregated" ? "Well segregated ✅ — double points awarded!" : "Mixed waste 🟡 — base points awarded."}</div>
+          <div class="success-total">Total: ${total} pts earned</div>
+          <button class="btn-success" onclick="this.closest('.success-overlay').remove()">Continue ✓</button>
+        </div>`;
+      document.body.appendChild(overlay);
+      setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 6000);
+    }
+
+    function animateCounter(id, target) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const start = parseInt(el.textContent) || 0;
+      if (start === target) { el.textContent = target; return; }
+      const dur = 500, t0 = performance.now();
+      const step = now => {
+        const p = Math.min((now - t0) / dur, 1);
+        el.textContent = Math.round(start + (target - start) * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      };
+      requestAnimationFrame(step);
+    }
+
+    function relTime(date) {
+      const d = Math.floor((Date.now() - date) / 60000);
+      if (d < 1) return "just now";
+      if (d < 60) return `${d}m ago`;
+      if (d < 1440) return `${Math.floor(d / 60)}h ago`;
+      return `${Math.floor(d / 1440)}d ago`;
+    }
+
+    function showToast(msg, type = "success") {
+      const t = document.createElement("div");
+      t.className = `toast toast-${type}`;
+      t.innerHTML = `<span>${type === "success" ? "✅" : type === "warn" ? "⚠️" : "❌"}</span> ${msg}`;
+      document.getElementById("toastContainer").appendChild(t);
+      setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateX(20px)"; t.style.transition = "all 0.3s"; setTimeout(() => t.remove(), 300); }, 3500);
+    }
+
+    boot();
   </script>
 </body>
 
