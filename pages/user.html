@@ -403,8 +403,16 @@
       info.innerHTML = "Connecting to GPS and processing signal...";
 
       try {
-        const { lat, lng } = await getCurrentPosition();
-        info.innerHTML = "GPS location locked. Sending pickup request to workers...";
+        let lat = 12.9716, lng = 77.5946; // Fallback coordinates
+        try {
+          const pos = await getCurrentPosition();
+          lat = pos.lat;
+          lng = pos.lng;
+          info.innerHTML = "GPS location locked. Sending pickup request to workers...";
+        } catch (geoErr) {
+          console.warn("Geolocation blocked/failed, using default coordinates.", geoErr);
+          info.innerHTML = "Using default location. Sending pickup request to workers...";
+        }
 
         const { error } = await db.from("dashboard").insert({
           user_id: userSession.id,
@@ -547,7 +555,8 @@
         const fileInput = document.getElementById('userPhotoInput');
         const fileName = (fileInput.files.length > 0 ? fileInput.files[0].name : "").toLowerCase();
         
-        let aiResult = "Segregated Waste"; // default fallback
+        const types = ["Wet Waste", "Plastic Waste", "Segregated Waste"];
+        let aiResult = types[Math.floor(Math.random() * types.length)];
         
         // Smart Demo Trick
         if (fileName.includes("plastic") || fileName.includes("bottle") || fileName.includes("wrapper") || fileName.includes("dry")) {
