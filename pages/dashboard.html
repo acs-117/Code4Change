@@ -3,61 +3,735 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plastic Mitra — Global Map Track</title>
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/core.css" />
-  <link rel="stylesheet" href="../css/components.css" />
+  <title>Plastic Mitra — Live Impact Dashboard</title>
+  <meta name="description" content="Real-time global overview of plastic waste collection pings tracked by Plastic Mitra communities." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/globe.gl"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:        #4ade80;
+      --green-dim:    rgba(74, 222, 128, 0.15);
+      --green-glow:   rgba(74, 222, 128, 0.35);
+      --orange:       #fb923c;
+      --orange-dim:   rgba(251, 146, 60, 0.18);
+      --blue:         #60a5fa;
+      --blue-dim:     rgba(96, 165, 250, 0.15);
+      --bg:           #080f0a;
+      --surface:      rgba(15, 25, 17, 0.85);
+      --surface-solid:#0d1a10;
+      --border:       rgba(74, 222, 128, 0.12);
+      --border-hover: rgba(74, 222, 128, 0.28);
+      --text:         #e8f5e9;
+      --text-muted:   #7aab84;
+      --font-sans:    'IBM Plex Sans', system-ui, sans-serif;
+      --font-mono:    'IBM Plex Mono', monospace;
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout Shell ── */
+    .shell {
+      display: grid;
+      grid-template-rows: 60px 1fr;
+      grid-template-columns: 1fr 360px;
+      height: 100vh;
+    }
+
+    /* ── Top Nav Bar ── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      background: rgba(8, 15, 10, 0.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 100;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #4ade80, #16a34a);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      box-shadow: 0 0 12px rgba(74,222,128,0.4);
+    }
+
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+
+    .brand-title span { color: var(--green); }
+
+    .topbar-center {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.75); }
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-ghost:hover {
+      background: var(--green-dim);
+      border-color: var(--border-hover);
+      color: var(--green);
+    }
+
+    .btn-accent {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1.1rem;
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #0a1a0c;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 14px rgba(74,222,128,0.3);
+    }
+    .btn-accent:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(74,222,128,0.45);
+    }
+
+    /* ── Globe Panel ── */
+    .globe-panel {
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #0d1f0f 0%, #050d07 100%);
+    }
+
+    #globeViz {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Stat overlay cards on globe */
+    .stats-overlay {
+      position: absolute;
+      top: 1.25rem;
+      left: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 10;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.1rem;
+      background: rgba(8, 15, 10, 0.82);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      min-width: 190px;
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+    .stat-pill:hover {
+      border-color: var(--border-hover);
+      background: rgba(10, 22, 13, 0.92);
+      transform: translateX(3px);
+    }
+
+    .stat-pill-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .stat-pill-icon.green  { background: var(--green-dim);  box-shadow: 0 0 10px var(--green-glow); }
+    .stat-pill-icon.orange { background: var(--orange-dim); box-shadow: 0 0 10px rgba(251,146,60,0.3); }
+    .stat-pill-icon.blue   { background: var(--blue-dim);   box-shadow: 0 0 10px rgba(96,165,250,0.3); }
+
+    .stat-pill-body {}
+    .stat-pill-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.1rem;
+    }
+    .stat-pill-value {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+    }
+    .stat-pill-value.green  { color: var(--green); }
+    .stat-pill-value.orange { color: var(--orange); }
+    .stat-pill-value.blue   { color: var(--blue); }
+
+    /* Globe legend bottom-left */
+    .globe-legend {
+      position: absolute;
+      bottom: 1.25rem;
+      left: 1.25rem;
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      background: rgba(8, 15, 10, 0.8);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      backdrop-filter: blur(12px);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface-solid);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .sidebar-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .sidebar-badge {
+      padding: 0.2rem 0.6rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(74,222,128,0.25);
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .sidebar-section {
+      padding: 1rem 1.25rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* Top Metrics in sidebar */
+    .sidebar-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      padding: 0 1.25rem 1rem;
+      flex-shrink: 0;
+    }
+
+    .metric-card {
+      padding: 0.9rem;
+      background: rgba(74,222,128,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all 0.25s ease;
+    }
+    .metric-card:hover {
+      border-color: var(--border-hover);
+      background: rgba(74,222,128,0.08);
+    }
+    .metric-card-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .metric-card-value {
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--green);
+      line-height: 1;
+    }
+    .metric-card-value.warn { color: var(--orange); }
+    .metric-card-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Activity Feed */
+    .activity-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 1.25rem 1.25rem;
+    }
+    .activity-feed::-webkit-scrollbar { width: 4px; }
+    .activity-feed::-webkit-scrollbar-track { background: transparent; }
+    .activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid rgba(74,222,128,0.06);
+      animation: slide-in 0.4s ease forwards;
+    }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .activity-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .activity-dot.pending   { background: var(--orange); box-shadow: 0 0 6px rgba(251,146,60,0.6); }
+    .activity-dot.collected { background: var(--green);  box-shadow: 0 0 6px rgba(74,222,128,0.6); }
+
+    .activity-content { flex: 1; }
+    .activity-desc {
+      font-size: 0.8rem;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+      line-height: 1.4;
+    }
+    .activity-meta {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .activity-tag {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+    .activity-tag.pending   { background: var(--orange-dim); color: var(--orange); }
+    .activity-tag.collected { background: var(--green-dim);  color: var(--green); }
+
+    /* Empty state */
+    .empty-feed {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .empty-feed .icon { font-size: 2rem; opacity: 0.4; }
+
+    /* Footer bar in sidebar */
+    .sidebar-footer {
+      padding: 0.9rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .sync-info {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+    .sync-info span { color: var(--green); }
+
+    .refresh-btn {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.4rem 0.75rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(74,222,128,0.2);
+      border-radius: var(--radius-sm);
+      color: var(--green);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .refresh-btn:hover {
+      background: rgba(74,222,128,0.22);
+      border-color: var(--green);
+    }
+    .refresh-btn svg { transition: transform 0.4s ease; }
+    .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Globe rotate hint */
+    .rotate-hint {
+      position: absolute;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      background: rgba(8,15,10,0.75);
+      padding: 0.4rem 0.75rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    /* Number counter animation */
+    .counting { animation: count-pop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes count-pop {
+      from { transform: scale(0.8); opacity: 0.6; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr auto;
+      }
+      .sidebar {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        max-height: 280px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <header class="header-nav">
-    <h2 style="font-size:1.15rem; font-weight:700;">Plastic <span style="color:var(--color-accent)">Mitra</span> Platform Map</h2>
-    <button class="btn-secondary" onclick="window.location.href='../login.html'">Exit Overview</button>
+
+<div class="shell">
+
+  <!-- ── Top Navigation Bar ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon">🌿</div>
+      <span class="brand-title">Plastic <span>Mitra</span></span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="live-dot"></div>
+      Live Impact Map &nbsp;·&nbsp; Auto-refreshing every 30s
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn-ghost" id="btnToggleSpin">⏸ Pause Globe</button>
+      <button class="btn-accent" onclick="window.location.href='../login.html'">Sign In →</button>
+    </div>
   </header>
 
-  <main class="app-container">
-    <div class="metrics-grid">
-      <div class="stat-card"><h3>Total Tracked Pings</h3><div class="value" id="statTotal">0</div></div>
-      <div class="stat-card"><h3>Active Pending Cleanups</h3><div class="value" id="statPending" style="color:var(--color-warning);">0</div></div>
-      <div class="stat-card"><h3>Last Synced Time</h3><div class="value" id="statTime" style="font-size:1.2rem; margin-top:0.5rem;">00:00:00</div></div>
+  <!-- ── Globe Panel ── -->
+  <div class="globe-panel">
+    <div id="globeViz"></div>
+
+    <!-- Stat overlays -->
+    <div class="stats-overlay">
+      <div class="stat-pill">
+        <div class="stat-pill-icon green">🗺️</div>
+        <div class="stat-pill-body">
+          <div class="stat-pill-label">Total Pings</div>
+          <div class="stat-pill-value green" id="statTotal">—</div>
+        </div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-icon orange">⏳</div>
+        <div class="stat-pill-body">
+          <div class="stat-pill-label">Pending Cleanup</div>
+          <div class="stat-pill-value orange" id="statPending">—</div>
+        </div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-icon blue">✅</div>
+        <div class="stat-pill-body">
+          <div class="stat-pill-label">Collected</div>
+          <div class="stat-pill-value blue" id="statCollected">—</div>
+        </div>
+      </div>
     </div>
 
-    <div class="panel-main" style="padding:0;">
-      <div id="globeViz" class="canvas-wrapper"></div>
+    <!-- Legend -->
+    <div class="globe-legend">
+      <span><span class="legend-dot" style="background:#fb923c;box-shadow:0 0 5px #fb923c;"></span>Pending</span>
+      <span><span class="legend-dot" style="background:#4ade80;box-shadow:0 0 5px #4ade80;"></span>Collected</span>
     </div>
-  </main>
 
-  <script>
-    const dbUrl = 'https://wzdroididrergcjiwoty.supabase.co';
-    const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
-    let sb = null; try { sb = supabase.createClient(dbUrl, dbKey); } catch(e){}
+    <div class="rotate-hint">🖱 Drag to rotate</div>
+  </div>
 
-    const globe = Globe()(document.getElementById('globeViz'))
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
-      .pointColor(p => p.status === 'collected' ? '#2e7d32' : '#e65100')
-      .pointAltitude(0.08)
-      .pointRadius(0.25);
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Live Activity</span>
+      <span class="sidebar-badge" id="activityCount">0 events</span>
+    </div>
 
-    function applyData(arr) {
-      globe.pointsData(arr);
-      const pend = arr.filter(x => x.status !== 'collected').length;
-      document.getElementById('statTotal').textContent = arr.length;
-      document.getElementById('statPending').textContent = pend;
-      document.getElementById('statTime').textContent = new Date().toLocaleTimeString();
+    <div class="sidebar-section">Summary</div>
+    <div class="sidebar-metrics">
+      <div class="metric-card">
+        <div class="metric-card-label">Success Rate</div>
+        <div class="metric-card-value" id="metricRate">—%</div>
+        <div class="metric-card-sub">Collected / Total</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card-label">Open Pings</div>
+        <div class="metric-card-value warn" id="metricOpen">—</div>
+        <div class="metric-card-sub">Need pickup</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Recent Events</div>
+    <div class="activity-feed" id="activityFeed">
+      <div class="empty-feed">
+        <div class="icon">🌐</div>
+        Loading activity...
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sync-info">Last sync: <span id="syncTime">—</span></div>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadMarkers()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+  /* ── Supabase ── */
+  const DB_URL = 'https://wzdroididrergcjiwoty.supabase.co';
+  const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
+  let sb = null;
+  try { sb = supabase.createClient(DB_URL, DB_KEY); } catch(e) {}
+
+  /* ── Globe init ── */
+  const globeEl = document.getElementById('globeViz');
+  const globe = Globe()(globeEl)
+    .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+    .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
+    .pointColor(p => p.status === 'collected' ? '#4ade80' : '#fb923c')
+    .pointAltitude(p => p.status === 'collected' ? 0.04 : 0.10)
+    .pointRadius(0.3)
+    .pointResolution(12)
+    .pointLabel(p => `
+      <div style="background:rgba(8,15,10,0.9);border:1px solid ${p.status==='collected'?'#4ade80':'#fb923c'};
+           border-radius:8px;padding:8px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#e8f5e9;">
+        <b style="color:${p.status==='collected'?'#4ade80':'#fb923c'};">${p.status==='collected'?'✅ Collected':'⏳ Pending'}</b><br/>
+        📍 ${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}
+      </div>
+    `);
+
+  /* Sizing */
+  function resizeGlobe() {
+    const w = globeEl.clientWidth;
+    const h = globeEl.clientHeight;
+    globe.width(w).height(h);
+  }
+  resizeGlobe();
+  window.addEventListener('resize', resizeGlobe);
+
+  /* Auto-rotation */
+  let spinning = true;
+  globe.controls().autoRotate = true;
+  globe.controls().autoRotateSpeed = 0.35;
+  globe.controls().enableZoom = true;
+
+  document.getElementById('btnToggleSpin').addEventListener('click', function() {
+    spinning = !spinning;
+    globe.controls().autoRotate = spinning;
+    this.textContent = spinning ? '⏸ Pause Globe' : '▶ Resume Globe';
+  });
+
+  /* ── Data & UI ── */
+  function animateValue(el, val) {
+    el.classList.remove('counting');
+    void el.offsetWidth;
+    el.textContent = val;
+    el.classList.add('counting');
+  }
+
+  function renderFeed(arr) {
+    const feed = document.getElementById('activityFeed');
+    if (!arr.length) {
+      feed.innerHTML = '<div class="empty-feed"><div class="icon">🌿</div>No pings tracked yet</div>';
+      return;
+    }
+    const recent = arr.slice().reverse().slice(0, 30);
+    feed.innerHTML = recent.map((p, i) => {
+      const isCollected = p.status === 'collected';
+      const coordStr = `${Number(p.lat).toFixed(2)}°, ${Number(p.lng).toFixed(2)}°`;
+      const timeStr = p.reported_at
+        ? new Date(p.reported_at).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})
+        : 'Just now';
+      return `
+        <div class="activity-item" style="animation-delay:${i * 0.04}s">
+          <div class="activity-dot ${p.status}"></div>
+          <div class="activity-content">
+            <div class="activity-desc">Waste ping at ${coordStr}</div>
+            <div class="activity-meta">${timeStr}</div>
+          </div>
+          <span class="activity-tag ${p.status}">${isCollected ? 'Done' : 'Open'}</span>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('activityCount').textContent = `${arr.length} events`;
+  }
+
+  function applyData(arr) {
+    globe.pointsData(arr);
+    const pending   = arr.filter(x => x.status !== 'collected').length;
+    const collected = arr.filter(x => x.status === 'collected').length;
+    const rate      = arr.length ? Math.round((collected / arr.length) * 100) : 0;
+
+    animateValue(document.getElementById('statTotal'),     arr.length);
+    animateValue(document.getElementById('statPending'),   pending);
+    animateValue(document.getElementById('statCollected'), collected);
+    animateValue(document.getElementById('metricRate'),    rate + '%');
+    animateValue(document.getElementById('metricOpen'),    pending);
+
+    document.getElementById('syncTime').textContent = new Date().toLocaleTimeString('en-IN');
+
+    renderFeed(arr);
+  }
+
+  async function loadMarkers() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+
+    let data = null;
+    if (sb) {
+      try {
+        const res = await sb.from('dashboard').select('latitude, longitude, status, reported_at');
+        data = res.data;
+      } catch(e) {}
     }
 
-    async function loadMarkers() {
-      if(sb) {
-        const { data } = await sb.from('dashboard').select('latitude, longitude, status');
-        if(data && data.length) { applyData(data.map(x=>({lat:x.latitude, lng:x.longitude, status:x.status}))); return; }
-      }
+    if (data && data.length) {
+      applyData(data.map(x => ({
+        lat: x.latitude, lng: x.longitude,
+        status: x.status,
+        reported_at: x.reported_at
+      })));
+    } else {
+      // Fallback demo data spread across India
       applyData([
-        { lat: 12.971, lng: 77.594, status: 'pending' },
-        { lat: 13.082, lng: 80.270, status: 'collected' }
+        { lat: 12.971, lng: 77.594, status: 'pending',   reported_at: new Date(Date.now()-3e5).toISOString() },
+        { lat: 13.082, lng: 80.270, status: 'collected', reported_at: new Date(Date.now()-6e5).toISOString() },
+        { lat: 19.076, lng: 72.877, status: 'pending',   reported_at: new Date(Date.now()-9e5).toISOString() },
+        { lat: 28.614, lng: 77.209, status: 'collected', reported_at: new Date(Date.now()-12e5).toISOString() },
+        { lat: 22.572, lng: 88.363, status: 'pending',   reported_at: new Date(Date.now()-15e5).toISOString() },
+        { lat: 17.385, lng: 78.486, status: 'collected', reported_at: new Date(Date.now()-18e5).toISOString() },
+        { lat: 26.850, lng: 80.949, status: 'pending',   reported_at: new Date(Date.now()-21e5).toISOString() },
+        { lat: 23.259, lng: 77.412, status: 'pending',   reported_at: new Date(Date.now()-24e5).toISOString() },
       ]);
     }
-    loadMarkers();
-  </script>
+
+    btn.classList.remove('spinning');
+  }
+
+  loadMarkers();
+
+  // Auto-refresh every 30 seconds
+  setInterval(loadMarkers, 30000);
+</script>
 </body>
 </html>
