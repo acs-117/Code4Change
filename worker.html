@@ -1394,6 +1394,7 @@
 
       await renderHistory();
       initMap();
+      subscribeRealtime();
     }
 
     // ─── LOGOUT ───
@@ -1410,6 +1411,10 @@
       document.getElementById("loginError").style.display = "none";
       document.getElementById("loginBtn").disabled = false;
       document.getElementById("loginBtn").textContent = "Sign In →";
+      
+      if (sb && typeof sb.removeAllChannels === 'function') {
+        sb.removeAllChannels();
+      }
     }
 
     // ─── MAP ───
@@ -1484,6 +1489,70 @@
 
       renderCards();
       renderMapMarkers();
+    }
+
+    // ─── REALTIME SUPABASE SUBSCRIPTION ───
+    function subscribeRealtime() {
+      if (!sb) return;
+
+      sb.channel('worker-dashboard-events')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'dashboard' },
+          async (payload) => {
+            const ev = payload.eventType;
+            const row = payload.new || payload.old;
+
+            if (ev === 'INSERT' && row.status === 'pending') {
+              // Fetch username for this new row
+              let uname = "Mitra_User";
+              if (row.user_id) {
+                const { data: uData } = await sb.from('users').select('username').eq('id', row.user_id).single();
+                if (uData) uname = uData.username;
+              }
+
+              const point = {
+                id: row.id,
+                userId: row.user_id,
+                username: uname,
+                lat: row.latitude,
+                lng: row.longitude,
+                reportedAt: row.reported_at || new Date().toISOString(),
+                distance: calcDist(workerLatLng[0], workerLatLng[1], row.latitude, row.longitude)
+              };
+
+              // Add if it doesn't already exist
+              if (!pendingReports.find(r => r.id === point.id)) {
+                pendingReports.push(point);
+                pendingReports.sort((a, b) => a.distance - b.distance);
+
+                renderCards();
+                renderMapMarkers();
+
+                showToast(`📍 New waste report from @${uname}`);
+                if (leafletMap) leafletMap.setView([point.lat, point.lng], 14);
+              }
+            } else if (ev === 'UPDATE') {
+              if (row.status === 'collected') {
+                // someone else (or we) collected it, remove from list
+                if (mapMarkers[row.id]) {
+                  leafletMap.removeLayer(mapMarkers[row.id]);
+                  delete mapMarkers[row.id];
+                }
+                pendingReports = pendingReports.filter(r => r.id !== row.id);
+                renderCards();
+              }
+            } else if (ev === 'DELETE') {
+              if (mapMarkers[payload.old.id]) {
+                leafletMap.removeLayer(mapMarkers[payload.old.id]);
+                delete mapMarkers[payload.old.id];
+              }
+              pendingReports = pendingReports.filter(r => r.id !== payload.old.id);
+              renderCards();
+            }
+          }
+        )
+        .subscribe();
     }
 
     // ─── RENDER CARDS ───

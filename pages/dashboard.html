@@ -11,9 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Mapbox GL JS CDN -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+  <!-- Globe.gl CDN -->
+  <script src="https://unpkg.com/globe.gl"></script>
 
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -126,14 +125,14 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
-      max-width: 800px;
+      max-width: 600px;
     }
 
     /* ── Metrics Strip ── */
     .metrics-strip {
       display: flex;
       gap: 1rem;
-      width: 100%;
+      width: 600px;
       margin-bottom: 1.5rem;
     }
 
@@ -176,79 +175,65 @@
     .stat-val.green  { color: var(--green); text-shadow: 0 0 18px var(--green-glow); }
     .stat-val.small  { font-size: 1rem; margin-top: 0.35rem; }
 
-    /* ── Mapbox Hero ── */
-    .map-hero {
+    /* ── Globe Hero ── */
+    .globe-hero {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 100%;
     }
 
-    .map-wrap {
-      width: 100%;
-      height: 500px;
+    .globe-wrap {
+      width: 600px;
+      height: 600px;
       position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid var(--surface-border);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-      /* subtle float animation to keep it feeling alive */
-      animation: map-float 6s ease-in-out infinite;
+      animation: float 6s ease-in-out infinite;
     }
 
-    @keyframes map-float {
-      0%   { transform: translateY(0px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-      50%  { transform: translateY(-8px); box-shadow: 0 18px 50px rgba(74, 222, 128, 0.15); }
-      100% { transform: translateY(0px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    @keyframes float {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(-18px); }
+      100% { transform: translateY(0px); }
     }
 
-    #mapViz {
-      width: 100%;
-      height: 100%;
-      background: #000;
-    }
-
-    /* Glowing marker CSS for Mapbox */
-    .glow-marker {
-      width: 16px;
-      height: 16px;
+    /* subtle glow halo behind globe */
+    .globe-wrap::before {
+      content: '';
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 520px; height: 520px;
       border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 12px var(--green), 0 0 4px #fff inset;
-      animation: pulse-dot 1.5s infinite;
-      border: 1.5px solid #000;
-      cursor: pointer;
-    }
-    .grey-marker {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--gray-dot);
-      border: 1.5px solid #000;
-      cursor: pointer;
+      background: radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    /* Mapbox Popup Styling */
-    .mapboxgl-popup-content {
-      background: rgba(20,20,20,0.95);
-      border: 1px solid var(--surface-border);
-      color: #e2e8f0;
-      font-family: var(--font);
-      border-radius: 8px;
-      padding: 10px 14px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      backdrop-filter: blur(8px);
+    #globeViz {
+      width: 600px;
+      height: 600px;
+      position: relative;
+      z-index: 1;
+      background: transparent !important;
     }
-    .mapboxgl-popup-tip {
-      border-top-color: rgba(20,20,20,0.95) !important;
-    }
-    .mapboxgl-popup-close-button {
-      color: #94a3b8;
+    /* Remove any canvas background Globe.gl sets */
+    #globeViz canvas { background: transparent !important; }
+
+    /* Globe tooltips */
+    .scene-tooltip {
+      background: rgba(0,0,0,0.85) !important;
+      border: 1px solid var(--surface-border) !important;
+      color: #fff !important;
+      font-family: var(--font) !important;
+      padding: 0.5rem 0.8rem !important;
+      border-radius: 6px !important;
+      font-size: 0.8rem !important;
+      backdrop-filter: blur(8px) !important;
+      pointer-events: none;
     }
 
-    /* ── Caption beneath map ── */
-    .map-caption {
-      margin-top: 1.2rem;
+    /* ── Caption beneath globe ── */
+    .globe-caption {
+      margin-top: 1rem;
       font-family: var(--mono);
       font-size: 0.7rem;
       letter-spacing: 0.12em;
@@ -256,7 +241,7 @@
       color: var(--text-muted);
       text-align: center;
     }
-    .map-caption span { color: var(--green); }
+    .globe-caption span { color: var(--green); }
 
     /* ── Toast ── */
     #toastContainer {
@@ -290,9 +275,9 @@
     }
 
     /* ── Responsive ── */
-    @media (max-width: 860px) {
-      .pm-center { padding: 0 1.5rem; }
-      .metrics-strip { flex-direction: column; }
+    @media (max-width: 660px) {
+      .globe-wrap, #globeViz { width: 340px; height: 340px; }
+      .metrics-strip { flex-direction: column; max-width: 340px; }
     }
   </style>
 </head>
@@ -310,6 +295,7 @@
 
   <!-- ── Main ── -->
   <main class="pm-main" id="mainContent">
+
     <div class="pm-center">
       <!-- Metrics -->
       <div class="metrics-strip" role="region" aria-label="Ping statistics">
@@ -327,16 +313,17 @@
         </div>
       </div>
 
-      <!-- Map -->
-      <section class="map-hero" aria-label="Live waste ping map">
-        <div class="map-wrap" id="mapWrap">
-          <div id="mapViz"></div>
+      <!-- Globe -->
+      <section class="globe-hero" aria-label="Live waste ping globe">
+        <div class="globe-wrap" id="globeWrap">
+          <div id="globeViz"></div>
         </div>
-        <p class="map-caption">
-          <span id="captionCount">0</span> active pings across India · Scroll to zoom
+        <p class="globe-caption">
+          <span id="captionCount">0</span> active pings across India · auto-rotating
         </p>
       </section>
     </div>
+
   </main>
 
   <!-- Toast container -->
@@ -344,19 +331,16 @@
 
   <script>
     /* ──────────────────────────────────────────
-       CONFIG — Mapbox & Supabase Credentials
+       CONFIG — fill in your Supabase credentials
     ────────────────────────────────────────── */
-    // ⚠️ IMPORTANT: PASTE YOUR MAPBOX TOKEN HERE
-    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN_HERE';
-
     const SUPABASE_URL  = 'https://wzdroididrergcjiwoty.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
 
     /* ──────────────────────────────────────────
        STATE
     ────────────────────────────────────────── */
-    let wastePoints = [];   // { id, lat, lng, status, markerObj }
-    let map = null;
+    let wastePoints = [];   // { lat, lng, status }
+    let globe = null;
     let sb = null;
 
     /* ──────────────────────────────────────────
@@ -369,86 +353,74 @@
     }
 
     /* ──────────────────────────────────────────
-       MAPBOX INIT
+       GLOBE INIT
     ────────────────────────────────────────── */
-    function initMap() {
-      if (mapboxgl.accessToken === 'YOUR_MAPBOX_TOKEN_HERE') {
-        toast('⚠️ Warning: Mapbox Token is missing in the code!', 10000);
-      }
+    function initGlobe() {
+      globe = Globe({ animateIn: false })(document.getElementById('globeViz'))
+        .width(600)
+        .height(600)
+        /* Night earth texture — city lights */
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
 
-      map = new mapboxgl.Map({
-        container: 'mapViz', // ID of the container
-        style: 'mapbox://styles/mapbox/dark-v11', // Dark map style
-        projection: 'globe', // This renders the map as a 3D globe when zoomed out!
-        center: [78.9629, 20.5937], // Center on India
-        zoom: 3.5, // Start zoomed out to see the globe
-        minZoom: 1.5,
-        maxZoom: 18,
-        pitch: 45 // Slight tilt for 3D effect
-      });
+        /* No atmosphere ring */
+        .showAtmosphere(false)
 
-      // Add space background to make it look like a globe in space
-      map.on('style.load', () => {
-        map.setFog({
-          color: 'rgb(0, 0, 0)', // black space
-          'high-color': 'rgb(20, 20, 20)', // subtle glow
-          'horizon-blend': 0.05,
-          'space-color': 'rgb(0, 0, 0)',
-          'star-intensity': 0.4
-        });
-      });
+        /* Transparent canvas background */
+        .backgroundColor('rgba(0,0,0,0)')
 
-      // Add navigation controls (zoom buttons, compass)
-      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+        /* Point markers */
+        .pointsData([])
+        .pointLat(p => p.lat)
+        .pointLng(p => p.lng)
+        .pointColor(p => p.status === 'collected' ? '#6b7280' : '#4ade80')
+        .pointAltitude(0.012)
+        .pointRadius(p => p.status === 'collected' ? 0.28 : 0.38)
+        .pointsMerge(false)
+        .pointResolution(12)
+        /* Add hover labels to make it feel more interactive */
+        .pointLabel(p => `
+          <div style="text-align: center;">
+            <b style="color: ${p.status === 'collected' ? '#6b7280' : '#4ade80'}">
+              ${p.status === 'collected' ? 'Collected' : 'Pending'}
+            </b><br/>
+            Lat: ${Number(p.lat).toFixed(3)}, Lng: ${Number(p.lng).toFixed(3)}
+          </div>
+        `);
+
+      /* Camera — start centred on India */
+      globe.pointOfView({ lat: 20, lng: 78, altitude: 2.2 }, 0);
+
+      /* Controls — allow zooming and panning */
+      const controls = globe.controls();
+      controls.enableZoom = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.4;
+      controls.enablePan = true;
+      controls.minDistance = 120; // don't zoom into the core
+      controls.maxDistance = 400; // don't zoom out too far
+      controls.minPolarAngle = Math.PI * 0.15;
+      controls.maxPolarAngle = Math.PI * 0.85;
+
+      /* Kill atmosphere / bg renderer if it slips through */
+      try {
+        const renderer = globe.renderer();
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      } catch(_) {}
     }
 
     /* ──────────────────────────────────────────
        RENDER POINTS
     ────────────────────────────────────────── */
     function renderPoints() {
-      if (!map) return;
-      
-      // Update Dashboard Metrics
+      if (!globe) return;
+      globe.pointsData([...wastePoints]);
+
       const pending = wastePoints.filter(p => p.status !== 'collected').length;
       document.getElementById('statTotal').textContent   = wastePoints.length;
       document.getElementById('statPending').textContent = pending;
       document.getElementById('statTime').textContent    = new Date().toLocaleTimeString();
       document.getElementById('captionCount').textContent = pending;
-
-      // Draw markers
-      wastePoints.forEach(p => {
-        // If marker already exists, update its style/popup but don't recreate
-        if (p.markerObj) {
-          p.markerObj.getElement().className = p.status !== 'collected' ? 'glow-marker' : 'grey-marker';
-          const statusText = p.status !== 'collected' ? '<span style="color:#4ade80">Pending</span>' : '<span style="color:#6b7280">Collected</span>';
-          p.markerObj.getPopup().setHTML(`
-            <strong style="display:block; margin-bottom:4px; font-size:1rem;">Waste Ping</strong>
-            Status: ${statusText}<br/>
-            Lat: ${Number(p.lat).toFixed(4)}<br/>
-            Lng: ${Number(p.lng).toFixed(4)}
-          `);
-          return;
-        }
-
-        // Create new HTML element for the marker
-        const el = document.createElement('div');
-        el.className = p.status !== 'collected' ? 'glow-marker' : 'grey-marker';
-
-        // Create Popup
-        const statusText = p.status !== 'collected' ? '<span style="color:#4ade80">Pending</span>' : '<span style="color:#6b7280">Collected</span>';
-        const popup = new mapboxgl.Popup({ offset: 15, closeButton: false }).setHTML(`
-          <strong style="display:block; margin-bottom:4px; font-size:1rem;">Waste Ping</strong>
-          Status: ${statusText}<br/>
-          Lat: ${Number(p.lat).toFixed(4)}<br/>
-          Lng: ${Number(p.lng).toFixed(4)}
-        `);
-
-        // Add Marker to Map
-        p.markerObj = new mapboxgl.Marker(el)
-          .setLngLat([p.lng, p.lat])
-          .setPopup(popup)
-          .addTo(map);
-      });
     }
 
     /* ──────────────────────────────────────────
@@ -462,17 +434,15 @@
       try {
         const { data, error } = await sb
           .from('dashboard')
-          .select('id, latitude, longitude, status');
+          .select('latitude, longitude, status');
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           wastePoints = data.map(r => ({
-            id: r.id,
             lat: r.latitude,
             lng: r.longitude,
-            status: r.status || 'pending',
-            markerObj: null
+            status: r.status || 'pending'
           }));
         } else {
           useFallback();
@@ -486,12 +456,16 @@
 
     function useFallback() {
       wastePoints = [
-        { id: '1', lat: 28.613,  lng: 77.209,  status: 'pending',   markerObj: null },
-        { id: '2', lat: 19.076,  lng: 72.877,  status: 'pending',   markerObj: null },
-        { id: '3', lat: 12.971,  lng: 77.594,  status: 'collected', markerObj: null },
-        { id: '4', lat: 22.572,  lng: 88.363,  status: 'pending',   markerObj: null },
-        { id: '5', lat: 13.082,  lng: 80.270,  status: 'collected', markerObj: null },
-        { id: '6', lat: 17.385,  lng: 78.486,  status: 'pending',   markerObj: null }
+        { lat: 28.613,  lng: 77.209,  status: 'pending'   },   // Delhi
+        { lat: 19.076,  lng: 72.877,  status: 'pending'   },   // Mumbai
+        { lat: 12.971,  lng: 77.594,  status: 'collected' },   // Bangalore
+        { lat: 22.572,  lng: 88.363,  status: 'pending'   },   // Kolkata
+        { lat: 13.082,  lng: 80.270,  status: 'collected' },   // Chennai
+        { lat: 17.385,  lng: 78.486,  status: 'pending'   },   // Hyderabad
+        { lat: 23.022,  lng: 72.571,  status: 'pending'   },   // Ahmedabad
+        { lat: 18.520,  lng: 73.856,  status: 'collected' },   // Pune
+        { lat: 26.846,  lng: 80.946,  status: 'pending'   },   // Lucknow
+        { lat: 25.317,  lng: 82.974,  status: 'pending'   },   // Varanasi
       ];
     }
 
@@ -511,37 +485,30 @@
 
             if (ev === 'INSERT') {
               const point = {
-                id: row.id,
                 lat: row.latitude,
                 lng: row.longitude,
-                status: row.status || 'pending',
-                markerObj: null
+                status: row.status || 'pending'
               };
               wastePoints.push(point);
               toast(`📍 New ping — ${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`);
               
-              // Fly camera to new ping
-              if (map) {
-                map.flyTo({
-                  center: [point.lng, point.lat],
-                  zoom: 13, // zoom all the way down to street level
-                  essential: true
-                });
-              }
-
+              // Move camera to new point
+              globe.pointOfView({ lat: point.lat, lng: point.lng, altitude: 1.5 }, 1000);
             } else if (ev === 'UPDATE') {
-              const p = wastePoints.find(pt => pt.id === row.id);
-              if (p) {
-                p.status = row.status;
-                toast(`✅ Ping updated — ${row.latitude.toFixed(3)}, ${row.longitude.toFixed(3)}`);
+              const idx = wastePoints.findIndex(
+                p => Math.abs(p.lat - row.latitude) < 0.001 &&
+                     Math.abs(p.lng - row.longitude) < 0.001
+              );
+              if (idx !== -1) {
+                wastePoints[idx].status = row.status;
+                toast(`✅ Ping collected — ${row.latitude.toFixed(3)}, ${row.longitude.toFixed(3)}`);
               }
             } else if (ev === 'DELETE') {
-              const pIdx = wastePoints.findIndex(pt => pt.id === payload.old.id);
-              if (pIdx !== -1) {
-                const p = wastePoints[pIdx];
-                if (p.markerObj) p.markerObj.remove(); // remove from map
-                wastePoints.splice(pIdx, 1); // remove from array
-              }
+              const old = payload.old;
+              wastePoints = wastePoints.filter(
+                p => !(Math.abs(p.lat - old.latitude) < 0.001 &&
+                       Math.abs(p.lng - old.longitude) < 0.001)
+              );
             }
 
             renderPoints();
@@ -577,7 +544,7 @@
        BOOT
     ────────────────────────────────────────── */
     window.addEventListener('load', () => {
-      initMap();
+      initGlobe();
       loadInitialData().then(() => {
         subscribeRealtime();
       });
