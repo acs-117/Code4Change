@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plastic Mitra — Sign In</title>
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/core.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="auth-page">
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
+      </div>
+      <span class="logo-name">Plastic <em>Mitra</em></span>
+    </div>
+
+    <h1 class="card-title">Welcome back</h1>
+    <p class="card-sub">Sign in to your account to continue</p>
+
+    <div class="role-toggle" role="group" aria-label="Select account type">
+      <button class="role-btn active" id="btn-user" onclick="setRole('user')">User</button>
+      <button class="role-btn" id="btn-worker" onclick="setRole('worker')">Worker</button>
+    </div>
+
+    <div class="status-msg" id="status-msg" role="alert"></div>
+
+    <form id="login-form" onsubmit="handleLogin(event)" novalidate>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" type="text" placeholder="your_username" required />
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="••••••••" required />
+      </div>
+      <button class="btn-primary" id="submit-btn" type="submit">Sign in</button>
+    </form>
+
+    <div class="card-footer">New here? <a href="signup.html">Create an account</a></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

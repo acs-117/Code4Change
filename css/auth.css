@@ -1,0 +1,99 @@
+/* ============================================================
+   auth.css — Styling specific to Sign-In and Registration
+   ============================================================ */
+
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: var(--color-bg);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2.25rem 2rem;
+  width: 100%;
+  max-width: 440px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.75rem;
+}
+.logo-icon { width: 32px; height: 32px; stroke: var(--color-accent); fill: none; stroke-width: 2; }
+.logo-name { font-size: 1.35rem; font-weight: 700; color: var(--color-text-primary); letter-spacing: -0.02em; }
+.logo-name em { color: var(--color-accent); font-style: normal; }
+
+.card-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
+.card-sub { font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.75rem; }
+
+/* Functional Role Switch Control Toggles */
+.role-toggle {
+  display: flex;
+  background: var(--color-surface-alt);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--color-border);
+}
+.role-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+.role-btn.active {
+  background: var(--color-surface);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.status-msg {
+  display: none;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid transparent;
+}
+.status-msg.error { display: block; background: var(--color-error-dim); border-color: var(--color-error); color: var(--color-error); }
+.status-msg.success { display: block; background: var(--color-success-dim); border-color: var(--color-success); color: var(--color-success); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.btn-location {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+.btn-location svg { width: 18px; height: 18px; stroke: var(--color-text-muted); fill: none; stroke-width: 2; }
+.btn-location:hover { border-color: var(--color-accent); background: var(--color-accent-dim); }
+.btn-location.located { border-style: solid; border-color: var(--color-accent); background: var(--color-accent-dim); color: var(--color-accent); }
+.btn-location.located svg { stroke: var(--color-accent); }
+
+.card-footer { margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--color-text-muted); }
