@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,16 +11,24 @@
   <link rel="stylesheet" href="../css/components.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
+
 <body>
   <header class="header-nav">
     <h2>Worker Portal: <span id="workerTitle" style="color:var(--color-accent)">Mitra Crew</span></h2>
-    <button class="btn-secondary" onclick="sessionStorage.clear(); window.location.href='../login.html'">Sign Out</button>
+    <button class="btn-secondary" onclick="sessionStorage.clear(); window.location.href='../login.html'">Sign
+      Out</button>
   </header>
 
   <main class="app-container">
     <div class="metrics-grid">
-      <div class="stat-card"><h3>Total Work Orders Completed</h3><div class="value" id="wDone">0</div></div>
-      <div class="stat-card"><h3>Pending Nearby Tasks</h3><div class="value" id="wPending" style="color:var(--color-error);">0</div></div>
+      <div class="stat-card">
+        <h3>Total Work Orders Completed</h3>
+        <div class="value" id="wDone">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Pending Nearby Tasks</h3>
+        <div class="value" id="wPending" style="color:var(--color-error);">0</div>
+      </div>
     </div>
 
     <div class="split-view">
@@ -29,9 +38,12 @@
 
       <div class="panel-sidebar">
         <div class="panel-main">
-          <h3 style="font-size:0.95rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid var(--color-border)">Active Incident Queue</h3>
+          <h3
+            style="font-size:0.95rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid var(--color-border)">
+            Active Incident Queue</h3>
           <div class="activity-list" id="jobQueue">
-            <p style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1rem;">No immediate tasks assigned to your radius.</p>
+            <p style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1rem;">No immediate
+              tasks assigned to your radius.</p>
           </div>
         </div>
       </div>
@@ -40,7 +52,7 @@
 
   <script>
     document.getElementById('workerTitle').textContent = sessionStorage.getItem('pm_username') || 'Field Agent';
-    
+
     // Fallback Initializer Leaflet Map Instance
     const map = L.map('map').setView([12.9716, 77.5946], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -48,4 +60,5 @@
     }).addTo(map);
   </script>
 </body>
+
 </html>

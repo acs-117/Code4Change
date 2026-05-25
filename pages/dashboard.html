@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,17 +11,28 @@
   <script src="https://unpkg.com/globe.gl"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <header class="header-nav">
-    <h2 style="font-size:1.15rem; font-weight:700;">Plastic <span style="color:var(--color-accent)">Mitra</span> Platform Map</h2>
+    <h2 style="font-size:1.15rem; font-weight:700;">Plastic <span style="color:var(--color-accent)">Mitra</span>
+      Platform Map</h2>
     <button class="btn-secondary" onclick="window.location.href='../login.html'">Exit Overview</button>
   </header>
 
   <main class="app-container">
     <div class="metrics-grid">
-      <div class="stat-card"><h3>Total Tracked Pings</h3><div class="value" id="statTotal">0</div></div>
-      <div class="stat-card"><h3>Active Pending Cleanups</h3><div class="value" id="statPending" style="color:var(--color-warning);">0</div></div>
-      <div class="stat-card"><h3>Last Synced Time</h3><div class="value" id="statTime" style="font-size:1.2rem; margin-top:0.5rem;">00:00:00</div></div>
+      <div class="stat-card">
+        <h3>Total Tracked Pings</h3>
+        <div class="value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Active Pending Cleanups</h3>
+        <div class="value" id="statPending" style="color:var(--color-warning);">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Last Synced Time</h3>
+        <div class="value" id="statTime" style="font-size:1.2rem; margin-top:0.5rem;">00:00:00</div>
+      </div>
     </div>
 
     <div class="panel-main" style="padding:0;">
@@ -31,7 +43,7 @@
   <script>
     const dbUrl = 'https://wzdroididrergcjiwoty.supabase.co';
     const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
-    let sb = null; try { sb = supabase.createClient(dbUrl, dbKey); } catch(e){}
+    let sb = null; try { sb = supabase.createClient(dbUrl, dbKey); } catch (e) { }
 
     const globe = Globe()(document.getElementById('globeViz'))
       .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
@@ -48,9 +60,9 @@
     }
 
     async function loadMarkers() {
-      if(sb) {
+      if (sb) {
         const { data } = await sb.from('dashboard').select('latitude, longitude, status');
-        if(data && data.length) { applyData(data.map(x=>({lat:x.latitude, lng:x.longitude, status:x.status}))); return; }
+        if (data && data.length) { applyData(data.map(x => ({ lat: x.latitude, lng: x.longitude, status: x.status }))); return; }
       }
       applyData([
         { lat: 12.971, lng: 77.594, status: 'pending' },
@@ -60,4 +72,5 @@
     loadMarkers();
   </script>
 </body>
+
 </html>
