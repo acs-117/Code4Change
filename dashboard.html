@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plastic Mitra — Waste Collection Dashboard</title>
+  <meta name="description" content="Real-time global waste collection tracking." />
+
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+
+  <div class="loader-overlay" id="loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">INITIALIZING GLOBE</div>
+  </div>
+
+  <div class="vignette"></div>
+
+  <nav class="top-bar">
+    <div class="brand">
+      <div>
+        <div class="brand-logo">plastic<span>mitra</span></div>
+        <div class="brand-tag">Waste Collection Dashboard</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        <span>LIVE</span>
+      </div>
+      <a href="login.html" id="loginBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+        </svg>
+        Login
+      </a>
+    </div>
+  </nav>
+
+  <div class="stats-panel" id="statsPanel">
+    <div class="stat-card">
+      <div class="stat-icon green">♻️</div>
+      <div>
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Reports</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">📍</div>
+      <div>
+        <div class="stat-value" id="statPending">—</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon dim">🕐</div>
+      <div>
+        <div class="stat-value" id="statTime">—</div>
+        <div class="stat-label">Updated</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend-panel">
+    <h3>Legend</h3>
+    <div class="legend-row"><div class="legend-ring pending"></div> Pending collection</div>
+    <div class="legend-row"><div class="legend-ring collected"></div> Collected</div>
+  </div>
+
+  <div id="globeViz"></div>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

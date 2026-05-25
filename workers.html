@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Dashboard | Plastic Mitra</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/workers.css" />
+</head>
+<body>
+
+  <div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Connecting to Supabase…</div>
+  </div>
+
+  <header class="header-nav">
+    <h2>⚙ Worker Portal: <span id="workerTitle" style="color:var(--color-accent)">—</span></h2>
+    <div class="header-right">
+      <div class="worker-badge">
+        <div class="avatar" id="workerAvatar">—</div>
+        <span id="workerName">—</span>
+      </div>
+      <button class="btn-secondary" id="signOutBtn">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div class="metrics-grid">
+      <div class="stat-card">
+        <h3>Points Earned</h3>
+        <div class="value" id="wPoints" style="color:var(--color-accent)">0</div>
+        <div class="value-label">Reward XP</div>
+      </div>
+      <div class="stat-card">
+        <h3>Collections Done</h3>
+        <div class="value" id="wDone">0</div>
+        <div class="value-label">Total pickups</div>
+      </div>
+      <div class="stat-card">
+        <h3>Pending Tasks</h3>
+        <div class="value" id="wPending" style="color:var(--color-error)">0</div>
+        <div class="value-label">In your radius</div>
+      </div>
+      <div class="stat-card">
+        <h3>Segregated Pickups</h3>
+        <div class="value" id="wSegregated" style="color:var(--color-segregated)">0</div>
+        <div class="value-label">+20 pts each</div>
+      </div>
+      <div class="stat-card">
+        <h3>Mixed Waste Pickups</h3>
+        <div class="value" id="wMixed" style="color:var(--color-mixed)">0</div>
+        <div class="value-label">+10 pts each</div>
+      </div>
+    </div>
+
+    <div class="split-view">
+      <div class="panel-main" style="padding:0; position:relative;">
+        <div id="map"></div>
+      </div>
+
+      <div class="panel-sidebar">
+        <div class="panel-main">
+          <div class="section-title">
+            📋 Active Pickup Queue
+            <span class="section-badge" id="queueBadge">0</span>
+          </div>
+          <div class="activity-list" id="jobQueue">
+            <div class="empty-state"><span class="empty-state-icon">⏳</span>Loading reports…</div>
+          </div>
+        </div>
+
+        <div class="panel-main">
+          <div class="section-title">
+            🏆 Points History
+            <span class="section-badge" id="historyBadge">0</span>
+          </div>
+          <div class="activity-list" id="pointsLog">
+            <div class="empty-state"><span class="empty-state-icon">📊</span>Collect waste to earn points</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toastContainer"></div>
+  <div id="modalContainer"></div>
+
+  <script src="js/workers.js"></script>
+</body>
+</html>
