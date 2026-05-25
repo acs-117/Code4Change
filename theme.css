@@ -1,0 +1,71 @@
+/* ============================================================
+   theme.css — Plastic Mitra
+   ALL color/font/shape tokens live here.
+   Change values in :root to retheme the entire app.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+
+  /* ── PAGE BACKGROUND ── */
+  --color-bg:           #f0f4f0;       /* outer page bg */
+  --color-surface:      #ffffff;       /* card / panel bg */
+  --color-surface-alt:  #f6faf6;       /* input bg, toggle track */
+
+  /* ── BORDERS ── */
+  --color-border:       #d1ddd1;       /* default border */
+  --color-border-focus: #2e7d32;       /* input focus ring color */
+
+  /* ── ACCENT (buttons, active states, links) ── */
+  --color-accent:       #2e7d32;       /* primary green */
+  --color-accent-hover: #1b5e20;       /* darker on hover */
+  --color-accent-dim:   rgba(46, 125, 50, 0.08);  /* tinted bg */
+  --color-accent-text:  #ffffff;       /* text ON accent button */
+
+  /* ── TYPOGRAPHY ── */
+  --color-text-primary: #1a2e1a;       /* headings, body */
+  --color-text-muted:   #6b7c6b;       /* placeholder, hints */
+  --color-text-label:   #4a5e4a;       /* field labels */
+
+  /* ── FEEDBACK ── */
+  --color-error:        #c62828;
+  --color-error-dim:    rgba(198, 40, 40, 0.07);
+  --color-success:      #2e7d32;
+  --color-success-dim:  rgba(46, 125, 50, 0.08);
+  --color-warning:      #e65100;
+  --color-warning-dim:  rgba(230, 81, 0, 0.07);
+
+  /* ── FONTS ── */
+  --font-main:  'IBM Plex Sans', sans-serif;
+  --font-mono:  'IBM Plex Mono', monospace;
+
+  /* ── SHAPE ── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+
+  /* ── MOTION ── */
+  --transition: 0.18s ease;
+
+  /* ── SHADOW ── */
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px var(--color-border);
+}
+
+/* ── RESET ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
