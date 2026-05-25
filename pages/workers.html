@@ -987,9 +987,6 @@
   </div>
 
   <header class="header-nav">
-    <h2>Worker Portal: <span id="workerTitle" style="color:var(--color-accent)">Mitra Crew</span></h2>
-    <button class="btn-secondary" onclick="sessionStorage.clear(); window.location.href='../login.html'">Sign
-      Out</button>
     <h2>⚙ Worker Portal: <span id="workerTitle" style="color:var(--accent)">—</span></h2>
     <div class="header-right">
       <div class="worker-badge">
@@ -1001,15 +998,7 @@
   </header>
 
   <main class="app-container">
-    <div class="metrics-grid">
-      <div class="stat-card">
-        <h3>Total Work Orders Completed</h3>
-        <div class="value" id="wDone">0</div>
-      </div>
-      <div class="stat-card">
-        <h3>Pending Nearby Tasks</h3>
-        <div class="value" id="wPending" style="color:var(--color-error);">0</div>
-      </div>
+    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
       <div class="stat-card">
         <h3>Points Earned</h3>
         <div class="value" id="wPoints" style="color:var(--accent)">0</div>
@@ -1019,6 +1008,11 @@
         <h3>Collections Done</h3>
         <div class="value" id="wDone">0</div>
         <div class="value-label">Total pickups</div>
+      </div>
+      <div class="stat-card">
+        <h3>Pending Nearby Tasks</h3>
+        <div class="value" id="wPending" style="color:var(--danger)">0</div>
+        <div class="value-label">In your radius</div>
       </div>
       <div class="stat-card">
         <h3>Segregated Pickups</h3>
@@ -1039,16 +1033,11 @@
 
       <div class="panel-sidebar">
         <div class="panel-main">
-          <h3
-            style="font-size:0.95rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid var(--color-border)">
-            Active Incident Queue</h3>
           <div class="section-title">
             📋 Active Pickup Queue
             <span class="section-badge" id="queueBadge">0</span>
           </div>
           <div class="activity-list" id="jobQueue">
-            <p style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1rem;">No immediate
-              tasks assigned to your radius.</p>
             <div class="empty-state"><span class="empty-state-icon">⏳</span>Loading reports…</div>
           </div>
         </div>
@@ -1070,36 +1059,30 @@
   <div id="modalContainer"></div>
 
   <script>
-    document.getElementById('workerTitle').textContent = sessionStorage.getItem('pm_username') || 'Field Agent';
-
-    // Fallback Initializer Leaflet Map Instance
-    const map = L.map('map').setView([12.9716, 77.5946], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
     const SUPABASE_URL = "https://wzdroididrergcjiwoty.supabase.co";
-      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU";
-      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      const POINTS = { segregated: 20, mixed: 10 };
-      let workerSession = null;
-      let pendingJobs =[];
-      let activeJobId = null;
-      let selectedFile = null;
-      let segregatedCount = 0;
-      let mixedCount = 0;
+    const POINTS = { segregated: 20, mixed: 10 };
+    let workerSession = null;
+    let pendingJobs = [];
+    let activeJobId = null;
+    let selectedFile = null;
+    let segregatedCount = 0;
+    let mixedCount = 0;
 
-      // Tracking active positioning and routing engine overlays
-      let workerLocation = null;
-      let routingControl = null;
+    // Tracking active positioning and routing engine overlays
+    let workerLocation = null;
+    let routingControl = null;
 
-      const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
-      }).addTo(map);
-      L.control.zoom({ position: 'topright' }).addTo(map);
+    const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+    }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-      // Continuous high-precision geolocation tracking to coordinate closest-worker queries
-      if(navigator.geolocation) {
+    // Continuous high-precision geolocation tracking to coordinate closest-worker queries
+    if (navigator.geolocation) {
       navigator.geolocation.watchPosition(async (pos) => {
         workerLocation = [pos.coords.latitude, pos.coords.longitude];
 
@@ -1293,6 +1276,11 @@
     function renderQueue() {
       const container = document.getElementById("jobQueue");
       document.getElementById("queueBadge").textContent = pendingJobs.length;
+
+      const pendingEl = document.getElementById("wPending");
+      if (pendingEl) {
+        pendingEl.textContent = pendingJobs.length;
+      }
 
       if (pendingJobs.length === 0) {
         container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">✅</span>All tasks complete — great work!</div>`;
