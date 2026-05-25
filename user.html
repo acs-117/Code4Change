@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plastic Mitra — Your waste disposal dashboard. Earn points and ping workers for collection.">
+  <title>Plastic Mitra — User Dashboard</title>
+  <link rel="stylesheet" href="style/main.css">
+  <style>
+    /* ===== User Page Specific Styles ===== */
+    .page-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+    .page-header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .page-header h1 span { color: var(--color-accent); }
+    .page-header p { color: var(--color-text-muted); font-size: 0.95rem; }
+
+    /* --- Points Banner --- */
+    .points-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-xl);
+      padding: var(--space-xl) var(--space-2xl);
+      background: linear-gradient(135deg, rgba(74,222,128,0.08) 0%, rgba(34,197,94,0.04) 100%);
+      border: 1px solid rgba(74,222,128,0.18);
+      border-radius: var(--radius-xl);
+      margin-bottom: var(--space-2xl);
+      flex-wrap: wrap;
+    }
+    .points-total {
+      text-align: center;
+    }
+    .points-total .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 0.2rem;
+    }
+    .points-total .value {
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      line-height: 1;
+      text-shadow: 0 0 30px var(--color-accent-glow);
+    }
+    .points-breakdown {
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+    .breakdown-item {
+      text-align: center;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      min-width: 100px;
+    }
+    .breakdown-item .bi-val {
+      font-family: var(--font-mono);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .breakdown-item .bi-label {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* --- Section Title --- */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-title .icon { font-size: 1.2rem; }
+
+    /* --- Dispose Grid --- */
+    .dispose-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-2xl);
+    }
+    .dispose-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+      transition: all var(--duration) var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+    .dispose-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, var(--card-glow) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity var(--duration) var(--ease-out);
+    }
+    .dispose-card:hover { border-color: var(--color-border-light); transform: translateY(-2px); }
+    .dispose-card:hover::before { opacity: 1; }
+    .dispose-card > * { position: relative; z-index: 1; }
+
+    .dispose-card .emoji { font-size: 2.5rem; margin-bottom: var(--space-sm); }
+    .dispose-card .dc-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.2rem; }
+    .dispose-card .dc-pts {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--color-accent);
+      margin-bottom: var(--space-md);
+    }
+    .dispose-card .btn { width: 100%; }
+
+    .dispose-card.wet   { --card-glow: rgba(96,165,250,0.08); }
+    .dispose-card.plastic { --card-glow: rgba(251,191,36,0.08); }
+    .dispose-card.segregated { --card-glow: rgba(74,222,128,0.08); }
+
+    /* --- Points Popup --- */
+    .points-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      text-shadow: 0 0 40px var(--color-accent-glow);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 2000;
+      transition: none;
+    }
+    .points-popup.show {
+      animation: popPoints 1s var(--ease-out) forwards;
+    }
+    @keyframes popPoints {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      40%  { transform: translate(-50%, -50%) scale(1); }
+      80%  { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+    }
+
+    /* --- Ping Section --- */
+    .ping-section {
+      margin-bottom: var(--space-2xl);
+    }
+    .ping-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-2xl);
+      text-align: center;
+    }
+    .ping-card .ping-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(74,222,128,0.1);
+      border: 2px solid rgba(74,222,128,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto var(--space-md);
+      transition: all 0.4s var(--ease-out);
+    }
+    .ping-card:hover .ping-icon {
+      box-shadow: var(--shadow-glow);
+      border-color: var(--color-accent);
+    }
+    .ping-card .ping-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .ping-card .ping-desc {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-lg);
+      max-width: 400px;
+      margin-inline: auto;
+    }
+    #pingBtn {
+      padding: 0.85rem 2.5rem;
+      font-size: 1rem;
+      position: relative;
+    }
+    #pingBtn .ripple-ring {
+      position: absolute;
+      inset: -4px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--color-accent);
+      opacity: 0;
+    }
+    #pingBtn.pinging .ripple-ring {
+      animation: ripple 1s var(--ease-out) forwards;
+    }
+    @keyframes ripple {
+      0%   { inset: -4px; opacity: 0.6; }
+      100% { inset: -20px; opacity: 0; }
+    }
+    .ping-status {
+      margin-top: var(--space-md);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      min-height: 1.4em;
+    }
+    .ping-status.active { color: var(--color-accent); }
+
+    /* --- Activity Log --- */
+    .activity-section { margin-bottom: var(--space-2xl); }
+    .activity-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      animation: fadeInUp 0.35s var(--ease-out) forwards;
+      opacity: 0;
+    }
+    .activity-item .ai-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .activity-item .ai-text { flex: 1; font-size: 0.9rem; }
+    .activity-item .ai-pts {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--color-accent);
+      font-size: 0.9rem;
+    }
+    .activity-item .ai-time {
+      font-size: 0.75rem;
+      color: var(--color-text-dim);
+      font-family: var(--font-mono);
+    }
+    .empty-state {
+      text-align: center;
+      padding: var(--space-2xl);
+      color: var(--color-text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .points-banner { flex-direction: column; gap: var(--space-md); padding: var(--space-lg); }
+      .points-total .value { font-size: 2.4rem; }
+      .dispose-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Points Popup -->
+  <div class="points-popup" id="pointsPopup"></div>
+
+  <!-- Navbar -->
+  <nav class="container">
+    <div class="navbar">
+      <a href="dashboard.html" class="navbar-brand">
+        <div class="brand-icon">♻️</div>
+        Plastic Mitra
+      </a>
+      <div class="navbar-actions">
+        <span id="usernameDisplay" class="badge badge-green mono" style="font-size:0.8rem;"></span>
+        <a href="dashboard.html" class="btn btn-outline btn-sm">🌍 Globe</a>
+        <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Header -->
+    <div class="page-header animate-in">
+      <h1>Welcome back, <span id="displayName">User</span></h1>
+      <p>Dispose responsibly. Earn points. Help your community.</p>
+    </div>
+
+    <!-- Points Banner -->
+    <div class="points-banner animate-in animate-in-delay-1">
+      <div class="points-total">
+        <div class="label">Total Points</div>
+        <div class="value" id="totalPoints">0</div>
+      </div>
+      <div class="points-breakdown">
+        <div class="breakdown-item">
+          <div class="bi-val" id="wetCount">0</div>
+          <div class="bi-label">💧 Wet Waste</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-val" id="plasticCount">0</div>
+          <div class="bi-label">🧴 Plastic</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-val" id="segregatedCount">0</div>
+          <div class="bi-label">✅ Segregated</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Dispose Waste -->
+    <h2 class="section-title animate-in animate-in-delay-2">
+      <span class="icon">🗑️</span> Log Waste Disposal
+    </h2>
+    <div class="dispose-grid animate-in animate-in-delay-2">
+      <div class="dispose-card wet" id="cardWet">
+        <div class="emoji">💧</div>
+        <div class="dc-title">Wet Waste</div>
+        <div class="dc-pts">+5 points</div>
+        <button class="btn btn-primary" onclick="logDisposal('wet', 5)">Log Disposal</button>
+      </div>
+      <div class="dispose-card plastic" id="cardPlastic">
+        <div class="emoji">🧴</div>
+        <div class="dc-title">Plastic Waste</div>
+        <div class="dc-pts">+10 points</div>
+        <button class="btn btn-primary" onclick="logDisposal('plastic', 10)">Log Disposal</button>
+      </div>
+      <div class="dispose-card segregated" id="cardSeg">
+        <div class="emoji">✅</div>
+        <div class="dc-title">Segregated Waste</div>
+        <div class="dc-pts">+10 points</div>
+        <button class="btn btn-primary" onclick="logDisposal('segregated', 10)">Log Disposal</button>
+      </div>
+    </div>
+
+    <!-- Ping Worker -->
+    <h2 class="section-title animate-in animate-in-delay-3">
+      <span class="icon">📡</span> Notify Worker
+    </h2>
+    <div class="ping-section animate-in animate-in-delay-3">
+      <div class="ping-card">
+        <div class="ping-icon">📡</div>
+        <div class="ping-title">Waste Ready for Collection?</div>
+        <div class="ping-desc">Ping a nearby worker to come collect the waste from your location. Your location will be shared with available workers.</div>
+        <button class="btn btn-primary btn-lg" id="pingBtn" onclick="pingWorker()">
+          <span class="ripple-ring"></span>
+          🔔 Ping Worker
+        </button>
+        <div class="ping-status" id="pingStatus"></div>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <h2 class="section-title animate-in animate-in-delay-4">
+      <span class="icon">📋</span> Recent Activity
+    </h2>
+    <div class="activity-section animate-in animate-in-delay-4">
+      <ul class="activity-list" id="activityList">
+        <li class="empty-state">No activity yet. Start logging waste!</li>
+      </ul>
+    </div>
+
+  </main>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ============ SUPABASE CONFIG ============
+    // TODO: Replace with your project credentials
+    const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+      : null;
+
+    // ============ SESSION ============
+    const role   = sessionStorage.getItem('role');
+    const userId = sessionStorage.getItem('userId');
+    const username = sessionStorage.getItem('username') || 'User';
+
+    // Redirect if not logged in as user
+    // (Commented out for demo — uncomment when Supabase is live)
+    // if (!userId || role !== 'user') {
+    //   window.location.href = 'login.html';
+    // }
+
+    document.getElementById('displayName').textContent = username;
+    document.getElementById('usernameDisplay').textContent = `👤 ${username}`;
+
+    // ============ LOCAL STATE ============
+    let state = loadState();
+
+    function loadState() {
+      const saved = localStorage.getItem('plasticMitra_user_' + (userId || 'demo'));
+      if (saved) return JSON.parse(saved);
+      return { totalPoints: 0, wet: 0, plastic: 0, segregated: 0, pings: 0, log: [] };
+    }
+
+    function saveState() {
+      localStorage.setItem('plasticMitra_user_' + (userId || 'demo'), JSON.stringify(state));
+    }
+
+    // ============ UI UPDATERS ============
+    function renderStats() {
+      animateNumber('totalPoints', state.totalPoints);
+      document.getElementById('wetCount').textContent       = state.wet;
+      document.getElementById('plasticCount').textContent    = state.plastic;
+      document.getElementById('segregatedCount').textContent = state.segregated;
+    }
+
+    function animateNumber(id, target) {
+      const el = document.getElementById(id);
+      const start = parseInt(el.textContent) || 0;
+      if (start === target) { el.textContent = target; return; }
+      const diff = target - start;
+      const steps = 20;
+      let step = 0;
+      const interval = setInterval(() => {
+        step++;
+        el.textContent = Math.round(start + (diff * (step / steps)));
+        if (step >= steps) { el.textContent = target; clearInterval(interval); }
+      }, 25);
+    }
+
+    function renderLog() {
+      const list = document.getElementById('activityList');
+      if (state.log.length === 0) {
+        list.innerHTML = '<li class="empty-state">No activity yet. Start logging waste!</li>';
+        return;
+      }
+      list.innerHTML = state.log.slice().reverse().slice(0, 20).map((entry, i) => {
+        const icons = { wet: '💧', plastic: '🧴', segregated: '✅', ping: '📡' };
+        const labels = { wet: 'Wet Waste Disposed', plastic: 'Plastic Waste Disposed', segregated: 'Segregated Waste Disposed', ping: 'Worker Pinged' };
+        return `
+          <li class="activity-item" style="animation-delay:${i * 0.05}s">
+            <span class="ai-icon">${icons[entry.type] || '♻️'}</span>
+            <span class="ai-text">${labels[entry.type] || entry.type}</span>
+            <span class="ai-pts">${entry.points ? '+' + entry.points : '—'}</span>
+            <span class="ai-time">${timeAgo(entry.time)}</span>
+          </li>`;
+      }).join('');
+    }
+
+    function timeAgo(ts) {
+      const diff = Date.now() - new Date(ts).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      return Math.floor(h / 24) + 'd ago';
+    }
+
+    // ============ POINTS POPUP ============
+    function showPointsPopup(pts) {
+      const el = document.getElementById('pointsPopup');
+      el.textContent = `+${pts}`;
+      el.classList.remove('show');
+      void el.offsetWidth; // reflow
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 1100);
+    }
+
+    // ============ TOAST ============
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      toast.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ============ LOG DISPOSAL ============
+    async function logDisposal(type, points) {
+      // Update local state
+      state.totalPoints += points;
+      state[type] = (state[type] || 0) + 1;
+      state.log.push({ type, points, time: new Date().toISOString() });
+      saveState();
+      renderStats();
+      renderLog();
+      showPointsPopup(points);
+      showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} waste logged — +${points} points!`);
+
+      // Supabase: update user points
+      if (supabase && userId) {
+        try {
+          await supabase
+            .from('users')
+            .update({ points: state.totalPoints })
+            .eq('id', userId);
+        } catch (e) {
+          console.warn('Supabase sync failed:', e);
+        }
+      }
+    }
+
+    // ============ PING WORKER ============
+    async function pingWorker() {
+      const btn = document.getElementById('pingBtn');
+      const status = document.getElementById('pingStatus');
+
+      btn.disabled = true;
+      btn.classList.add('pinging');
+      status.textContent = '📍 Getting your location...';
+      status.className = 'ping-status active';
+
+      // Get location
+      let lat, lng;
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, timeout: 10000
+          });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch (e) {
+        // Fallback for demo
+        lat = 20.5937 + (Math.random() - 0.5) * 2;
+        lng = 78.9629 + (Math.random() - 0.5) * 2;
+        showToast('Using approximate location (geolocation unavailable)', 'info');
+      }
+
+      status.textContent = '📡 Sending ping to nearby workers...';
+
+      // Supabase: insert into dashboard
+      if (supabase && userId) {
+        try {
+          await supabase.from('dashboard').insert({
+            user_id: userId,
+            latitude: lat,
+            longitude: lng,
+            status: 'pending'
+          });
+        } catch (e) {
+          console.warn('Supabase ping insert failed:', e);
+        }
+      }
+
+      // Simulate network delay for demo
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Update state
+      state.pings += 1;
+      state.log.push({ type: 'ping', points: 0, time: new Date().toISOString() });
+      saveState();
+      renderStats();
+      renderLog();
+
+      status.textContent = `✅ Ping sent! Workers near (${lat.toFixed(2)}°, ${lng.toFixed(2)}°) notified.`;
+      showToast('Worker ping sent successfully!');
+
+      // Re-enable after cooldown
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.classList.remove('pinging');
+        status.textContent = '';
+        status.className = 'ping-status';
+      }, 5000);
+    }
+
+    // ============ LOGOUT ============
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (supabase) {
+        try { await supabase.auth.signOut(); } catch (e) {}
+      }
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    // ============ INIT ============
+    renderStats();
+    renderLog();
+  </script>
+</body>
+</html>
