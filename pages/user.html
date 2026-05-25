@@ -99,56 +99,7 @@
       </div>
     </div>
 
-    <!-- AI Verification Module -->
-    <div class="panel-main" style="margin-top:2rem;">
-      <h3 style="margin-bottom:1rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">AI Waste
-        Analysis</h3>
-      <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1.5rem;">Upload a photo of the waste you
-        want to report. Our AI will analyze the image and classify the waste type.</p>
 
-      <div style="margin-bottom: 2rem;">
-        <!-- User Upload -->
-        <div
-          style="background: var(--color-surface-alt); padding: 1.5rem; border-radius: var(--radius-md); border: 1px dashed var(--color-border); text-align: center;">
-          <h4 style="margin-bottom: 1rem; color: var(--color-text-primary);">Waste Photo</h4>
-          <input type="file" id="userPhotoInput" accept="image/*" style="display: none;"
-            onchange="previewImage(event, 'userPreview')">
-          <button class="btn-secondary" onclick="document.getElementById('userPhotoInput').click()"
-            style="margin-bottom: 1rem;">Choose Image</button>
-          <div id="userPreviewContainer" style="display:none; margin-top: 1rem;">
-            <img id="userPreview" src="" alt="Waste preview"
-              style="max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align: center;">
-        <button class="btn-primary" id="analyzeBtn" onclick="runAIVerification()"
-          style="padding: 1rem 2rem; border-radius: var(--radius-md); opacity: 0.6;" disabled>
-          🔍 Run AI Analysis
-        </button>
-      </div>
-
-      <!-- AI Results Display -->
-      <div id="aiResultCard"
-        style="display: none; margin-top: 2rem; padding: 1.5rem; border-radius: var(--radius-md); background: #f8fcf8; border: 1px solid var(--color-accent-dim);">
-        <h4 style="color: var(--color-accent); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-size: 1.2rem;">✨</span> AI Analysis Complete
-        </h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
-          <div>
-            <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Waste
-              Classification</div>
-            <div id="aiWasteType" style="font-weight: 600; font-size: 1.1rem;">-</div>
-          </div>
-          <div>
-            <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.25rem;">Confidence Score
-            </div>
-            <div id="aiConfidence" style="font-weight: 600; font-size: 1.1rem;">-</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
   <div id="toastContainer"></div>
 
@@ -514,78 +465,7 @@
       window.location.href = "../login.html";
     });
 
-    // --- AI Verification Logic ---
-    let userImgUploaded = false;
 
-    function previewImage(event, previewId) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = document.getElementById(previewId);
-          img.src = e.target.result;
-          img.parentElement.style.display = 'block';
-          
-          if (previewId === 'userPreview') userImgUploaded = true;
-          
-          // Enable analyze button if uploaded
-          if (userImgUploaded) {
-            const btn = document.getElementById('analyzeBtn');
-            btn.disabled = false;
-            btn.style.opacity = '1';
-          }
-        }
-        reader.readAsDataURL(file);
-      }
-    }
-
-    function runAIVerification() {
-      const btn = document.getElementById('analyzeBtn');
-      const resultCard = document.getElementById('aiResultCard');
-      const wasteType = document.getElementById('aiWasteType');
-      const confidence = document.getElementById('aiConfidence');
-
-      // Reset UI for loading state
-      btn.disabled = true;
-      btn.style.opacity = '0.7';
-      btn.innerHTML = "⏳ AI is analyzing image...";
-      resultCard.style.display = 'none';
-
-      // Simulate network request to LLM (e.g., Gemini Vision API)
-      setTimeout(() => {
-        const fileInput = document.getElementById('userPhotoInput');
-        const fileName = (fileInput.files.length > 0 ? fileInput.files[0].name : "").toLowerCase();
-        
-        const types = ["Wet Waste", "Plastic Waste", "Segregated Waste"];
-        let aiResult = types[Math.floor(Math.random() * types.length)];
-        
-        // Smart Demo Trick
-        if (fileName.includes("plastic") || fileName.includes("bottle") || fileName.includes("wrapper") || fileName.includes("dry")) {
-          aiResult = "Plastic Waste";
-        } else if (fileName.includes("wet") || fileName.includes("food") || fileName.includes("apple") || fileName.includes("peel") || fileName.includes("banana")) {
-          aiResult = "Wet Waste";
-        }
-
-        const confScore = (Math.random() * (99.9 - 94.0) + 94.0).toFixed(1);
-          
-        wasteType.textContent = aiResult;
-        
-        // Color code waste types
-        if (aiResult === "Wet Waste") wasteType.style.color = "#2e7d32";
-        else if (aiResult === "Plastic Waste") wasteType.style.color = "#d32f2f";
-        else wasteType.style.color = "#1976d2";
-
-        confidence.textContent = `${confScore}%`;
-        resultCard.style.display = 'block';
-
-        btn.innerHTML = "🔍 Run AI Analysis";
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        
-        showToast("AI Analysis completed successfully!", "success");
-
-      }, 1500); 
-    }
 
     boot();
   </script>
