@@ -3,61 +3,585 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plastic Mitra — Global Map Track</title>
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/core.css" />
-  <link rel="stylesheet" href="../css/components.css" />
-  <script src="https://unpkg.com/globe.gl"></script>
+  <title>Plastic Mitra — Live Ping Dashboard</title>
+  <meta name="description" content="Plastic Mitra live global map tracking plastic waste pings across India in real time." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Mapbox GL JS CDN -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ── Reset & Dark Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:        #4ade80;
+      --green-dim:    rgba(74, 222, 128, 0.15);
+      --green-glow:   rgba(74, 222, 128, 0.35);
+      --gray-dot:     #6b7280;
+      --bg:           #000000;
+      --surface:      rgba(255,255,255,0.04);
+      --surface-border: rgba(74, 222, 128, 0.12);
+      --text:         #e2e8f0;
+      --text-muted:   #64748b;
+      --font: 'IBM Plex Sans', -apple-system, sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .pm-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 2rem;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .pm-logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+    }
+    .pm-logo span { color: var(--green); }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    .pm-exit {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 6px;
+      padding: 0.4rem 0.9rem;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      text-decoration: none;
+    }
+    .pm-exit:hover { color: var(--green); border-color: var(--green); }
+
+    /* ── Main Layout ── */
+    .pm-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 80px; /* clear the fixed header */
+      padding-bottom: 2rem;
+      width: 100%;
+    }
+
+    /* ── Centered content column ── */
+    .pm-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    /* ── Metrics Strip ── */
+    .metrics-strip {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 1.1rem 1.3rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--green-dim) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-card:hover { border-color: rgba(74,222,128,0.3); }
+
+    .stat-card h3 {
+      font-size: 0.68rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.55rem;
+    }
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .stat-val.green  { color: var(--green); text-shadow: 0 0 18px var(--green-glow); }
+    .stat-val.small  { font-size: 1rem; margin-top: 0.35rem; }
+
+    /* ── Mapbox Hero ── */
+    .map-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .map-wrap {
+      width: 100%;
+      height: 500px;
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--surface-border);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      /* subtle float animation to keep it feeling alive */
+      animation: map-float 6s ease-in-out infinite;
+    }
+
+    @keyframes map-float {
+      0%   { transform: translateY(0px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+      50%  { transform: translateY(-8px); box-shadow: 0 18px 50px rgba(74, 222, 128, 0.15); }
+      100% { transform: translateY(0px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    }
+
+    #mapViz {
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    /* Glowing marker CSS for Mapbox */
+    .glow-marker {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green), 0 0 4px #fff inset;
+      animation: pulse-dot 1.5s infinite;
+      border: 1.5px solid #000;
+      cursor: pointer;
+    }
+    .grey-marker {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gray-dot);
+      border: 1.5px solid #000;
+      cursor: pointer;
+    }
+
+    /* Mapbox Popup Styling */
+    .mapboxgl-popup-content {
+      background: rgba(20,20,20,0.95);
+      border: 1px solid var(--surface-border);
+      color: #e2e8f0;
+      font-family: var(--font);
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+    }
+    .mapboxgl-popup-tip {
+      border-top-color: rgba(20,20,20,0.95) !important;
+    }
+    .mapboxgl-popup-close-button {
+      color: #94a3b8;
+    }
+
+    /* ── Caption beneath map ── */
+    .map-caption {
+      margin-top: 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .map-caption span { color: var(--green); }
+
+    /* ── Toast ── */
+    #toastContainer {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .toast {
+      background: rgba(0,0,0,0.9);
+      border: 1px solid var(--surface-border);
+      border-left: 3px solid var(--green);
+      backdrop-filter: blur(12px);
+      color: var(--text);
+      padding: 0.65rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: var(--mono);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    @keyframes slideIn {
+      from { transform: translateX(60px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .pm-center { padding: 0 1.5rem; }
+      .metrics-strip { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-  <header class="header-nav">
-    <h2 style="font-size:1.15rem; font-weight:700;">Plastic <span style="color:var(--color-accent)">Mitra</span> Platform Map</h2>
-    <button class="btn-secondary" onclick="window.location.href='../login.html'">Exit Overview</button>
+
+  <!-- ── Header ── -->
+  <header class="pm-header" role="banner">
+    <div class="pm-logo">Plastic <span>Mitra</span></div>
+    <div class="live-badge">
+      <div class="live-dot" id="liveDot"></div>
+      <span>Live</span>
+    </div>
+    <a href="../login.html" class="pm-exit" id="exitBtn">Exit Overview</a>
   </header>
 
-  <main class="app-container">
-    <div class="metrics-grid">
-      <div class="stat-card"><h3>Total Tracked Pings</h3><div class="value" id="statTotal">0</div></div>
-      <div class="stat-card"><h3>Active Pending Cleanups</h3><div class="value" id="statPending" style="color:var(--color-warning);">0</div></div>
-      <div class="stat-card"><h3>Last Synced Time</h3><div class="value" id="statTime" style="font-size:1.2rem; margin-top:0.5rem;">00:00:00</div></div>
-    </div>
+  <!-- ── Main ── -->
+  <main class="pm-main" id="mainContent">
+    <div class="pm-center">
+      <!-- Metrics -->
+      <div class="metrics-strip" role="region" aria-label="Ping statistics">
+        <div class="stat-card" id="cardTotal">
+          <h3>Total Pings</h3>
+          <div class="stat-val" id="statTotal">—</div>
+        </div>
+        <div class="stat-card" id="cardPending">
+          <h3>Pending Cleanups</h3>
+          <div class="stat-val green" id="statPending">—</div>
+        </div>
+        <div class="stat-card" id="cardTime">
+          <h3>Last Synced</h3>
+          <div class="stat-val small" id="statTime">—</div>
+        </div>
+      </div>
 
-    <div class="panel-main" style="padding:0;">
-      <div id="globeViz" class="canvas-wrapper"></div>
+      <!-- Map -->
+      <section class="map-hero" aria-label="Live waste ping map">
+        <div class="map-wrap" id="mapWrap">
+          <div id="mapViz"></div>
+        </div>
+        <p class="map-caption">
+          <span id="captionCount">0</span> active pings across India · Scroll to zoom
+        </p>
+      </section>
     </div>
   </main>
 
+  <!-- Toast container -->
+  <div id="toastContainer" role="status" aria-live="polite"></div>
+
   <script>
-    const dbUrl = 'https://wzdroididrergcjiwoty.supabase.co';
-    const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
-    let sb = null; try { sb = supabase.createClient(dbUrl, dbKey); } catch(e){}
+    /* ──────────────────────────────────────────
+       CONFIG — Mapbox & Supabase Credentials
+    ────────────────────────────────────────── */
+    // ⚠️ IMPORTANT: PASTE YOUR MAPBOX TOKEN HERE
+    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN_HERE';
 
-    const globe = Globe()(document.getElementById('globeViz'))
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
-      .pointColor(p => p.status === 'collected' ? '#2e7d32' : '#e65100')
-      .pointAltitude(0.08)
-      .pointRadius(0.25);
+    const SUPABASE_URL  = 'https://wzdroididrergcjiwoty.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
 
-    function applyData(arr) {
-      globe.pointsData(arr);
-      const pend = arr.filter(x => x.status !== 'collected').length;
-      document.getElementById('statTotal').textContent = arr.length;
-      document.getElementById('statPending').textContent = pend;
-      document.getElementById('statTime').textContent = new Date().toLocaleTimeString();
+    /* ──────────────────────────────────────────
+       STATE
+    ────────────────────────────────────────── */
+    let wastePoints = [];   // { id, lat, lng, status, markerObj }
+    let map = null;
+    let sb = null;
+
+    /* ──────────────────────────────────────────
+       SUPABASE INIT
+    ────────────────────────────────────────── */
+    try {
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch(e) {
+      console.warn('Supabase init failed:', e);
     }
 
-    async function loadMarkers() {
-      if(sb) {
-        const { data } = await sb.from('dashboard').select('latitude, longitude, status');
-        if(data && data.length) { applyData(data.map(x=>({lat:x.latitude, lng:x.longitude, status:x.status}))); return; }
+    /* ──────────────────────────────────────────
+       MAPBOX INIT
+    ────────────────────────────────────────── */
+    function initMap() {
+      if (mapboxgl.accessToken === 'YOUR_MAPBOX_TOKEN_HERE') {
+        toast('⚠️ Warning: Mapbox Token is missing in the code!', 10000);
       }
-      applyData([
-        { lat: 12.971, lng: 77.594, status: 'pending' },
-        { lat: 13.082, lng: 80.270, status: 'collected' }
-      ]);
+
+      map = new mapboxgl.Map({
+        container: 'mapViz', // ID of the container
+        style: 'mapbox://styles/mapbox/dark-v11', // Dark map style
+        projection: 'globe', // This renders the map as a 3D globe when zoomed out!
+        center: [78.9629, 20.5937], // Center on India
+        zoom: 3.5, // Start zoomed out to see the globe
+        minZoom: 1.5,
+        maxZoom: 18,
+        pitch: 45 // Slight tilt for 3D effect
+      });
+
+      // Add space background to make it look like a globe in space
+      map.on('style.load', () => {
+        map.setFog({
+          color: 'rgb(0, 0, 0)', // black space
+          'high-color': 'rgb(20, 20, 20)', // subtle glow
+          'horizon-blend': 0.05,
+          'space-color': 'rgb(0, 0, 0)',
+          'star-intensity': 0.4
+        });
+      });
+
+      // Add navigation controls (zoom buttons, compass)
+      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
     }
-    loadMarkers();
+
+    /* ──────────────────────────────────────────
+       RENDER POINTS
+    ────────────────────────────────────────── */
+    function renderPoints() {
+      if (!map) return;
+      
+      // Update Dashboard Metrics
+      const pending = wastePoints.filter(p => p.status !== 'collected').length;
+      document.getElementById('statTotal').textContent   = wastePoints.length;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statTime').textContent    = new Date().toLocaleTimeString();
+      document.getElementById('captionCount').textContent = pending;
+
+      // Draw markers
+      wastePoints.forEach(p => {
+        // If marker already exists, update its style/popup but don't recreate
+        if (p.markerObj) {
+          p.markerObj.getElement().className = p.status !== 'collected' ? 'glow-marker' : 'grey-marker';
+          const statusText = p.status !== 'collected' ? '<span style="color:#4ade80">Pending</span>' : '<span style="color:#6b7280">Collected</span>';
+          p.markerObj.getPopup().setHTML(`
+            <strong style="display:block; margin-bottom:4px; font-size:1rem;">Waste Ping</strong>
+            Status: ${statusText}<br/>
+            Lat: ${Number(p.lat).toFixed(4)}<br/>
+            Lng: ${Number(p.lng).toFixed(4)}
+          `);
+          return;
+        }
+
+        // Create new HTML element for the marker
+        const el = document.createElement('div');
+        el.className = p.status !== 'collected' ? 'glow-marker' : 'grey-marker';
+
+        // Create Popup
+        const statusText = p.status !== 'collected' ? '<span style="color:#4ade80">Pending</span>' : '<span style="color:#6b7280">Collected</span>';
+        const popup = new mapboxgl.Popup({ offset: 15, closeButton: false }).setHTML(`
+          <strong style="display:block; margin-bottom:4px; font-size:1rem;">Waste Ping</strong>
+          Status: ${statusText}<br/>
+          Lat: ${Number(p.lat).toFixed(4)}<br/>
+          Lng: ${Number(p.lng).toFixed(4)}
+        `);
+
+        // Add Marker to Map
+        p.markerObj = new mapboxgl.Marker(el)
+          .setLngLat([p.lng, p.lat])
+          .setPopup(popup)
+          .addTo(map);
+      });
+    }
+
+    /* ──────────────────────────────────────────
+       INITIAL LOAD FROM SUPABASE
+    ────────────────────────────────────────── */
+    async function loadInitialData() {
+      if (!sb) {
+        useFallback();
+        return;
+      }
+      try {
+        const { data, error } = await sb
+          .from('dashboard')
+          .select('id, latitude, longitude, status');
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          wastePoints = data.map(r => ({
+            id: r.id,
+            lat: r.latitude,
+            lng: r.longitude,
+            status: r.status || 'pending',
+            markerObj: null
+          }));
+        } else {
+          useFallback();
+        }
+      } catch(e) {
+        console.warn('Load error:', e);
+        useFallback();
+      }
+      renderPoints();
+    }
+
+    function useFallback() {
+      wastePoints = [
+        { id: '1', lat: 28.613,  lng: 77.209,  status: 'pending',   markerObj: null },
+        { id: '2', lat: 19.076,  lng: 72.877,  status: 'pending',   markerObj: null },
+        { id: '3', lat: 12.971,  lng: 77.594,  status: 'collected', markerObj: null },
+        { id: '4', lat: 22.572,  lng: 88.363,  status: 'pending',   markerObj: null },
+        { id: '5', lat: 13.082,  lng: 80.270,  status: 'collected', markerObj: null },
+        { id: '6', lat: 17.385,  lng: 78.486,  status: 'pending',   markerObj: null }
+      ];
+    }
+
+    /* ──────────────────────────────────────────
+       SUPABASE REALTIME SUBSCRIPTION
+    ────────────────────────────────────────── */
+    function subscribeRealtime() {
+      if (!sb) return;
+
+      sb.channel('dashboard-pings')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'dashboard' },
+          (payload) => {
+            const ev = payload.eventType;
+            const row = payload.new || payload.old;
+
+            if (ev === 'INSERT') {
+              const point = {
+                id: row.id,
+                lat: row.latitude,
+                lng: row.longitude,
+                status: row.status || 'pending',
+                markerObj: null
+              };
+              wastePoints.push(point);
+              toast(`📍 New ping — ${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`);
+              
+              // Fly camera to new ping
+              if (map) {
+                map.flyTo({
+                  center: [point.lng, point.lat],
+                  zoom: 13, // zoom all the way down to street level
+                  essential: true
+                });
+              }
+
+            } else if (ev === 'UPDATE') {
+              const p = wastePoints.find(pt => pt.id === row.id);
+              if (p) {
+                p.status = row.status;
+                toast(`✅ Ping updated — ${row.latitude.toFixed(3)}, ${row.longitude.toFixed(3)}`);
+              }
+            } else if (ev === 'DELETE') {
+              const pIdx = wastePoints.findIndex(pt => pt.id === payload.old.id);
+              if (pIdx !== -1) {
+                const p = wastePoints[pIdx];
+                if (p.markerObj) p.markerObj.remove(); // remove from map
+                wastePoints.splice(pIdx, 1); // remove from array
+              }
+            }
+
+            renderPoints();
+          }
+        )
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            document.getElementById('liveDot').style.background = '#4ade80';
+          } else if (status === 'CHANNEL_ERROR') {
+            document.getElementById('liveDot').style.background = '#ef4444';
+          }
+        });
+    }
+
+    /* ──────────────────────────────────────────
+       TOAST
+    ────────────────────────────────────────── */
+    function toast(msg, duration = 4000) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = msg;
+      const container = document.getElementById('toastContainer');
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(60px)';
+        el.style.transition = 'all 0.35s ease';
+        setTimeout(() => el.remove(), 360);
+      }, duration);
+    }
+
+    /* ──────────────────────────────────────────
+       BOOT
+    ────────────────────────────────────────── */
+    window.addEventListener('load', () => {
+      initMap();
+      loadInitialData().then(() => {
+        subscribeRealtime();
+      });
+    });
   </script>
 </body>
 </html>
