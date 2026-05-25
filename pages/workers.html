@@ -231,6 +231,7 @@
       color: var(--muted);
       padding: 0.1rem 0.5rem;
       border-radius: 10px;
+      font-size: 0.7 slab;
       font-size: 0.7rem;
     }
 
@@ -684,41 +685,6 @@
     .photo-retake:hover {
       border-color: var(--danger);
       color: var(--danger);
-    }
-
-    .scan-indicator {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      background: rgba(12, 15, 13, 0.5);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.6rem 0.85rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-
-    .scan-spinner {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .ai-confidence {
-      margin-left: auto;
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      color: var(--accent);
     }
 
     .classify-section {
@@ -1380,7 +1346,6 @@
               </div>
               <input type="file" accept="image/*" capture="environment"
                      class="camera-input" id="cameraInput" onchange="handlePhoto(event)">
-              <div id="scanRow" style="display:none;"></div>
               <div id="classifyRow" style="display:none;"></div>
             </div>
             <div class="camera-modal-footer">
@@ -1415,7 +1380,9 @@
         zone.innerHTML = `
           <img src="${ev.target.result}" alt="Waste photo" class="photo-preview">
           <button class="photo-retake" onclick="retakePhoto(event)">🔄 Retake</button>`;
-        runAIClassification(ev.target.result);
+
+        // Skip simulated AI scanning entirely and reveal option select cards instantly
+        showClassifyOptions();
       };
       reader.readAsDataURL(file);
     }
@@ -1430,62 +1397,36 @@
         <div class="camera-capture-icon">📷</div>
         <div class="camera-capture-label">Tap to take a photo</div>
         <div class="camera-capture-sub">Photograph the collected waste</div>`;
-      document.getElementById("scanRow").style.display = "none";
       document.getElementById("classifyRow").style.display = "none";
       document.getElementById("confirmBtn").disabled = true;
       document.getElementById("cameraInput").value = "";
     }
 
-    function runAIClassification(imgSrc) {
-      const scanRow = document.getElementById("scanRow");
-      scanRow.style.display = "block";
-      scanRow.innerHTML = `<div class="scan-indicator"><div class="scan-spinner"></div>Analyzing waste composition…</div>`;
-      document.getElementById("classifyRow").style.display = "none";
-      document.getElementById("confirmBtn").disabled = true;
-
-      setTimeout(() => {
-        const isSegregated = Math.random() > 0.4;
-        const confidence = Math.round(76 + Math.random() * 19);
-        const aiResult = isSegregated ? "segregated" : "mixed";
-
-        scanRow.innerHTML = `
-          <div class="scan-indicator" style="background:rgba(74,222,128,0.06);border-color:rgba(74,222,128,0.25);">
-            ✅ Analysis complete
-            <span class="ai-confidence">🤖 ${confidence}% confidence</span>
-          </div>`;
-
-        showClassifyOptions(aiResult, confidence);
-      }, 1400 + Math.random() * 900);
-    }
-
-    function showClassifyOptions(aiResult, confidence) {
+    function showClassifyOptions() {
       const row = document.getElementById("classifyRow");
       row.style.display = "block";
       row.innerHTML = `
         <div class="classify-section">
-          <div class="classify-label">Classification — you can override the AI</div>
+          <div class="classify-label">Select Waste Type</div>
           <div class="classify-options">
             <label class="classify-option opt-segregated">
-              <input type="radio" name="wasteType" value="segregated" ${aiResult === "segregated" ? "checked" : ""} onchange="onClassify()">
+              <input type="radio" name="wasteType" value="segregated" onchange="onClassify()">
               <div class="classify-option-card">
                 <span class="classify-icon">♻️</span>
                 <span class="classify-type">Segregated</span>
                 <span class="classify-pts">+20 pts</span>
-                ${aiResult === "segregated" ? `<span class="ai-confidence" style="font-size:0.65rem">🤖 AI · ${confidence}%</span>` : ""}
               </div>
             </label>
             <label class="classify-option opt-mixed">
-              <input type="radio" name="wasteType" value="mixed" ${aiResult === "mixed" ? "checked" : ""} onchange="onClassify()">
+              <input type="radio" name="wasteType" value="mixed" onchange="onClassify()">
               <div class="classify-option-card">
                 <span class="classify-icon">🔀</span>
                 <span class="classify-type">Mixed</span>
                 <span class="classify-pts">+10 pts</span>
-                ${aiResult === "mixed" ? `<span class="ai-confidence" style="font-size:0.65rem">🤖 AI · ${confidence}%</span>` : ""}
               </div>
             </label>
           </div>
         </div>`;
-      document.getElementById("confirmBtn").disabled = false;
     }
 
     function onClassify() { document.getElementById("confirmBtn").disabled = false; }
