@@ -385,11 +385,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    // ============ ERROR REPORTER ============
-    window.onerror = function(msg, url, line) {
-      alert("Error: " + msg + "\nLine: " + line);
-    };
-
     // ============ SUPABASE CONFIG ============
     const SUPABASE_URL  = 'https://wzdroididrergcjiwoty.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
@@ -398,9 +393,9 @@
       : null;
 
     // ============ SESSION ============
-    const role   = sessionStorage.getItem('role');
-    const userId = sessionStorage.getItem('userId');
-    const username = sessionStorage.getItem('username') || 'User';
+    const role   = sessionStorage.getItem('pm_role')   || sessionStorage.getItem('role');
+    const userId = sessionStorage.getItem('pm_user_id') || sessionStorage.getItem('userId');
+    const username = sessionStorage.getItem('pm_username') || sessionStorage.getItem('username') || 'User';
 
     // Redirect if not logged in as user
     // (Commented out for demo — uncomment when Supabase is live)
