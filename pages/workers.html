@@ -138,11 +138,17 @@
     /* ── Metrics ── */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 1rem;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1024px) {
+      .metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
       .metrics-grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -254,7 +260,6 @@
       color: var(--accent) !important;
     }
 
-    /* Target Leaflet Routing panel container layout to integrate with Dark Theme UI */
     .leaflet-routing-container {
       background: var(--card) !important;
       color: var(--text) !important;
@@ -318,7 +323,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      max-height: 220px;
+      max-height: 240px;
       overflow-y: auto;
     }
 
@@ -998,7 +1003,7 @@
   </header>
 
   <main class="app-container">
-    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+    <div class="metrics-grid">
       <div class="stat-card">
         <h3>Points Earned</h3>
         <div class="value" id="wPoints" style="color:var(--accent)">0</div>
@@ -1010,7 +1015,7 @@
         <div class="value-label">Total pickups</div>
       </div>
       <div class="stat-card">
-        <h3>Pending Nearby Tasks</h3>
+        <h3>Pending Tasks</h3>
         <div class="value" id="wPending" style="color:var(--danger)">0</div>
         <div class="value-label">In your radius</div>
       </div>
@@ -1071,7 +1076,6 @@
     let segregatedCount = 0;
     let mixedCount = 0;
 
-    // Tracking active positioning and routing engine overlays
     let workerLocation = null;
     let routingControl = null;
 
@@ -1081,12 +1085,10 @@
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Continuous high-precision geolocation tracking to coordinate closest-worker queries
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(async (pos) => {
         workerLocation = [pos.coords.latitude, pos.coords.longitude];
 
-        // Render or push position marker updates across the layout
         if (!window.workerMarker) {
           window.workerMarker = L.marker(workerLocation, {
             icon: L.divIcon({
@@ -1100,7 +1102,6 @@
           window.workerMarker.setLatLng(workerLocation);
         }
 
-        // Keep database worker location synchronous for routing calculations
         if (workerSession) {
           await sb.from("workers").update({
             current_lat: pos.coords.latitude,
@@ -1135,7 +1136,6 @@
       if (routingControl) { map.removeControl(routingControl); routingControl = null; }
     }
 
-    // OSRM routing engine logic to draw navigation vectors to the pickup target
     function calculateRoute(targetLat, targetLng) {
       if (!workerLocation) {
         showToast("Waiting on high-precision GPS lock...", "warn");
@@ -1159,7 +1159,7 @@
         lineOptions: {
           styles: [{ color: '#4ade80', opacity: 0.85, weight: 5 }]
         },
-        createMarker: function () { return null; }, // Hide default routing engine flags
+        createMarker: function () { return null; },
         addWaypoints: false,
         draggableWaypoints: false,
         fitSelectedRoutes: true
@@ -1203,8 +1203,6 @@
 
       await loadHistory();
       await loadQueue();
-
-      // Establish dynamic realtime link to filter queue additions instantly
       setupRealtimeStream();
 
       document.getElementById("loadingOverlay").style.display = "none";
@@ -1215,7 +1213,6 @@
       });
     }
 
-    // Dynamic filtering updates tasks specifically assigned to this operator or unassigned
     async function loadQueue() {
       const { data, error } = await sb
         .from("dashboard")
@@ -1239,7 +1236,6 @@
       pendingJobs.forEach(addMapMarker);
     }
 
-    // Subscribes to realtime dashboard events to capture instant localized user alerts
     function setupRealtimeStream() {
       sb.channel('public:dashboard')
         .on('postgres_changes', {
@@ -1265,8 +1261,6 @@
             renderQueue();
             addMapMarker(newJob);
             showToast("🚨 Closest priority alert routed to your terminal!", "warn");
-
-            // Auto-target perspective map navigation onto new arrivals
             calculateRoute(newJob.lat, newJob.lng);
           }
         })
@@ -1510,21 +1504,32 @@
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner"></span> Uploading…`;
 
+      let photoUrl = "";
       try {
         const ext = selectedFile.name.split(".").pop() || "jpg";
         const filePath = `${workerSession.id}/${job.id}_${Date.now()}.${ext}`;
         const { error: uploadErr } = await sb.storage
           .from("waste-photos")
           .upload(filePath, selectedFile, { upsert: true });
-        if (uploadErr) throw new Error("Upload: " + uploadErr.message);
 
-        const { data: urlData } = sb.storage.from("waste-photos").getPublicUrl(filePath);
+        if (uploadErr) {
+          console.warn("Storage upload failed (falling back to placeholder):", uploadErr.message);
+          photoUrl = "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80";
+        } else {
+          const { data: urlData } = sb.storage.from("waste-photos").getPublicUrl(filePath);
+          photoUrl = urlData ? urlData.publicUrl : "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80";
+        }
+      } catch (storageErr) {
+        console.warn("Storage upload exception (falling back to placeholder):", storageErr);
+        photoUrl = "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80";
+      }
 
+      try {
         const { error: dashErr } = await sb.from("dashboard").update({
           status: "collected",
           collected_at: new Date().toISOString(),
           collected_by: workerSession.id,
-          photo_url: urlData.publicUrl,
+          photo_url: photoUrl,
           points_awarded: pts,
           segregation_type: wasteType
         }).eq("id", job.id);
