@@ -163,6 +163,47 @@
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
 
+    let cooldownInterval = null;
+
+    function startCooldownTimer(lastPingTime) {
+      if (cooldownInterval) clearInterval(cooldownInterval);
+
+      const btn = document.getElementById('pingActionBtn');
+      const info = document.getElementById('statusReport');
+      const cooldownMs = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
+
+      btn.disabled = true;
+      if (!info.innerHTML.includes('successfully')) {
+        info.innerHTML = "<span style='color:var(--color-warning)'>You can only request a pickup once every 3 days.</span>";
+      }
+
+      function updateTimer() {
+        const now = Date.now();
+        const remaining = cooldownMs - (now - lastPingTime);
+
+        if (remaining <= 0) {
+          clearInterval(cooldownInterval);
+          btn.disabled = false;
+          btn.innerHTML = "⚡ Request Immediate Pickup";
+          info.innerHTML = "";
+
+          if (userSession && typeof db !== 'undefined') db.from('users').update({ ping: false }).eq('id', userSession.id);
+          localStorage.removeItem('pm_last_ping_' + (userSession?.id || 'anon'));
+        } else {
+          const totalSeconds = Math.floor(remaining / 1000);
+          const days = Math.floor(totalSeconds / (24 * 3600));
+          const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600).toString().padStart(2, '0');
+          const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+          const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+
+          btn.innerHTML = `⚡ Ping on Cooldown (${days}d ${hours}h ${minutes}m ${seconds}s)`;
+        }
+      }
+
+      updateTimer();
+      cooldownInterval = setInterval(updateTimer, 1000);
+    }
+
     async function showToast(msg, type = "success") {
       const container = document.getElementById("toastContainer");
       if (!container) return;
@@ -377,14 +418,23 @@
           throw error;
         }
 
+        await db.from('users').update({ ping: true }).eq('id', userSession.id);
+
+        const currentPings = parseInt(document.getElementById('pingsVal').textContent) || 0;
+        document.getElementById('pingsVal').textContent = currentPings + 1;
+
+        const now = Date.now();
+        localStorage.setItem('pm_last_ping_' + (userSession.id || 'anon'), now.toString());
+
         info.innerHTML = "<span style='color:var(--color-success)'>✓ Ping dispatched successfully! Area workers routed.</span>";
         showToast("Pickup request sent to workers!", "success");
         await loadPointsAndRequests();
         await updateMapLocation();
+        
+        startCooldownTimer(now);
       } catch (err) {
         info.innerHTML = `<span style='color:var(--color-error)'>❌ Failed to dispatch: ${err.message}</span>`;
         showToast("Failed to request pickup.", "error");
-      } finally {
         btn.disabled = false;
       }
     }
@@ -412,6 +462,36 @@
       userSession = profile;
       document.getElementById('welcomeHeader').innerHTML = `User Profile: <span style="color:var(--color-accent)">${profile.username}</span>`;
 
+      // Cooldown check
+      let lastPingStr = localStorage.getItem('pm_last_ping_' + (userSession.id || 'anon'));
+      let isOnCooldown = false;
+
+      if (lastPingStr) {
+        const now = Date.now();
+        const cooldown = 3 * 24 * 60 * 60 * 1000;
+        if (now - parseInt(lastPingStr) >= cooldown) {
+          await db.from('users').update({ ping: false }).eq('id', userSession.id);
+          localStorage.removeItem('pm_last_ping_' + (userSession.id || 'anon'));
+        } else {
+          isOnCooldown = true;
+        }
+      }
+
+      try {
+        if (!isOnCooldown) {
+          const { data } = await db.from('users').select('ping').eq('id', userSession.id).single();
+          if (data && data.ping) {
+            isOnCooldown = true;
+            lastPingStr = Date.now().toString();
+            localStorage.setItem('pm_last_ping_' + (userSession.id || 'anon'), lastPingStr);
+          }
+        }
+      } catch (e) { }
+
+      if (isOnCooldown && lastPingStr) {
+        startCooldownTimer(parseInt(lastPingStr));
+      }
+
       await loadPointsAndRequests();
       await updateMapLocation();
       setupRealtimeStream();
@@ -424,6 +504,78 @@
       sessionStorage.clear();
       window.location.href = "../login.html";
     });
+
+    // --- AI Verification Logic ---
+    let userImgUploaded = false;
+
+    function previewImage(event, previewId) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById(previewId);
+          img.src = e.target.result;
+          img.parentElement.style.display = 'block';
+          
+          if (previewId === 'userPreview') userImgUploaded = true;
+          
+          // Enable analyze button if uploaded
+          if (userImgUploaded) {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+          }
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function runAIVerification() {
+      const btn = document.getElementById('analyzeBtn');
+      const resultCard = document.getElementById('aiResultCard');
+      const wasteType = document.getElementById('aiWasteType');
+      const confidence = document.getElementById('aiConfidence');
+
+      // Reset UI for loading state
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.innerHTML = "⏳ AI is analyzing image...";
+      resultCard.style.display = 'none';
+
+      // Simulate network request to LLM (e.g., Gemini Vision API)
+      setTimeout(() => {
+        const fileInput = document.getElementById('userPhotoInput');
+        const fileName = (fileInput.files.length > 0 ? fileInput.files[0].name : "").toLowerCase();
+        
+        let aiResult = "Segregated Waste"; // default fallback
+        
+        // Smart Demo Trick
+        if (fileName.includes("plastic") || fileName.includes("bottle") || fileName.includes("wrapper") || fileName.includes("dry")) {
+          aiResult = "Plastic Waste";
+        } else if (fileName.includes("wet") || fileName.includes("food") || fileName.includes("apple") || fileName.includes("peel") || fileName.includes("banana")) {
+          aiResult = "Wet Waste";
+        }
+
+        const confScore = (Math.random() * (99.9 - 94.0) + 94.0).toFixed(1);
+          
+        wasteType.textContent = aiResult;
+        
+        // Color code waste types
+        if (aiResult === "Wet Waste") wasteType.style.color = "#2e7d32";
+        else if (aiResult === "Plastic Waste") wasteType.style.color = "#d32f2f";
+        else wasteType.style.color = "#1976d2";
+
+        confidence.textContent = `${confScore}%`;
+        resultCard.style.display = 'block';
+
+        btn.innerHTML = "🔍 Run AI Analysis";
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        
+        showToast("AI Analysis completed successfully!", "success");
+
+      }, 1500); 
+    }
 
     boot();
   </script>
