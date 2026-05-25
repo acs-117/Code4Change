@@ -469,6 +469,7 @@
 
       userSession = profile;
       document.getElementById('welcomeHeader').innerHTML = `User Profile: <span style="color:var(--color-accent)">${profile.username}</span>`;
+      document.getElementById('pointsVal').textContent = (profile.points || 0) + " XP";
 
       // Cooldown check
       let lastPingStr = localStorage.getItem('pm_last_ping_' + (userSession.id || 'anon'));
