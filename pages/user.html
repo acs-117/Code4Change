@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
   <link rel="stylesheet" href="../css/components.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <header class="header-nav">
     <h3 id="welcomeHeader">Welcome Back</h3>
@@ -17,16 +19,24 @@
 
   <main class="app-container">
     <div class="metrics-grid">
-      <div class="stat-card"><h3>Available Balance</h3><div class="value" id="pointsVal" style="color:var(--color-accent);">0 XP</div></div>
-      <div class="stat-card"><h3>Disposal Requests Sent</h3><div class="value" id="pingsVal">0</div></div>
+      <div class="stat-card">
+        <h3>Available Balance</h3>
+        <div class="value" id="pointsVal" style="color:var(--color-accent);">0 XP</div>
+      </div>
+      <div class="stat-card">
+        <h3>Disposal Requests Sent</h3>
+        <div class="value" id="pingsVal">0</div>
+      </div>
     </div>
 
     <div class="split-view">
       <div class="panel-main" style="text-align: center; padding: 3rem 2rem;">
         <h2 style="margin-bottom:1rem;">Request Waste Disposal Pickup</h2>
-        <p style="color:var(--color-text-muted); margin-bottom:2rem; font-size:0.95rem;">Tap the trigger mechanism below to beam an instant notification locator ping directly to nearest garbage workers.</p>
-        
-        <button class="btn-primary" id="pingActionBtn" style="font-size:1.1rem; padding:1.2rem; max-width:320px; border-radius:var(--radius-md);">
+        <p style="color:var(--color-text-muted); margin-bottom:2rem; font-size:0.95rem;">Tap the trigger mechanism below
+          to beam an instant notification locator ping directly to nearest garbage workers.</p>
+
+        <button class="btn-primary" id="pingActionBtn"
+          style="font-size:1.1rem; padding:1.2rem; max-width:320px; border-radius:var(--radius-md);">
           ⚡ Request Immediate Pickup
         </button>
         <div id="statusReport" style="margin-top:1.5rem; font-size:0.9rem; font-weight:500;"></div>
@@ -34,7 +44,9 @@
 
       <div class="panel-sidebar">
         <div class="panel-main">
-          <h3 style="font-size:0.95rem; margin-bottom:1rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Recent Logs</h3>
+          <h3
+            style="font-size:0.95rem; margin-bottom:1rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">
+            Recent Logs</h3>
           <div class="activity-list" id="activityFeed"></div>
         </div>
       </div>
@@ -45,7 +57,7 @@
   <script>
     const uName = sessionStorage.getItem('pm_username') || 'Valued User';
     document.getElementById('welcomeHeader').innerHTML = `User Profile: <span style="color:var(--color-accent)">${uName}</span>`;
-    
+
     // Basic reactive simulated structures 
     let localXp = 120, totalRequests = 4;
     document.getElementById('pointsVal').textContent = localXp + " XP";
@@ -56,23 +68,24 @@
       const info = document.getElementById('statusReport');
       btn.disabled = true;
       info.textContent = "Connecting to GPS and processing signal...";
-      
+
       setTimeout(() => {
         localXp += 15; totalRequests += 1;
         document.getElementById('pointsVal').textContent = localXp + " XP";
         document.getElementById('pingsVal').textContent = totalRequests;
         info.innerHTML = "<span style='color:var(--color-success)'>✓ Ping dispatched successfully! Area workers routed.</span>";
         btn.disabled = false;
-        
-        const toast = document.createElement('div'); toast.className="toast"; toast.textContent="Saved +15 XP Bonus Point!";
+
+        const toast = document.createElement('div'); toast.className = "toast"; toast.textContent = "Saved +15 XP Bonus Point!";
         document.getElementById('toastContainer').appendChild(toast);
-        setTimeout(()=>toast.remove(), 2500);
+        setTimeout(() => toast.remove(), 2500);
       }, 1400);
     });
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      sessionStorage.clear(); window.location.href="../login.html";
+      sessionStorage.clear(); window.location.href = "../login.html";
     });
   </script>
 </body>
+
 </html>
