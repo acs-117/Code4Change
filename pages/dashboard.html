@@ -1,173 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plastic Mitra — Live Impact Dashboard</title>
-  <meta name="description" content="Real-time global overview of plastic waste collection pings tracked by Plastic Mitra communities." />
+  <meta name="description"
+    content="Real-time global overview of plastic waste collection pings tracked by Plastic Mitra communities." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/globe.gl"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Three.js must come BEFORE globe.gl -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    /* ── Reset & Base ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --green:        #4ade80;
-      --green-dim:    rgba(74, 222, 128, 0.15);
-      --green-glow:   rgba(74, 222, 128, 0.35);
-      --orange:       #fb923c;
-      --orange-dim:   rgba(251, 146, 60, 0.18);
-      --blue:         #60a5fa;
-      --blue-dim:     rgba(96, 165, 250, 0.15);
-      --bg:           #080f0a;
-      --surface:      rgba(15, 25, 17, 0.85);
-      --surface-solid:#0d1a10;
-      --border:       rgba(74, 222, 128, 0.12);
-      --border-hover: rgba(74, 222, 128, 0.28);
-      --text:         #e8f5e9;
-      --text-muted:   #7aab84;
-      --font-sans:    'IBM Plex Sans', system-ui, sans-serif;
-      --font-mono:    'IBM Plex Mono', monospace;
-      --radius-sm:    8px;
-      --radius-md:    14px;
-      --radius-lg:    20px;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html, body {
+    :root {
+      --green: #4ade80;
+      --green-dim: rgba(74, 222, 128, 0.12);
+      --orange: #fb923c;
+      --orange-dim: rgba(251, 146, 60, 0.14);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.12);
+      --bg: #030a04;
+      --border: rgba(74, 222, 128, 0.09);
+      --text: #d4edd8;
+      --muted: #7aab84;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', system-ui, sans-serif;
+      --r-sm: 8px;
+      --r-md: 14px;
+    }
+
+    html,
+    body {
       height: 100%;
-      font-family: var(--font-sans);
+      font-family: var(--sans);
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Layout Shell ── */
+    /* ─── Shell grid ─────────────────────────── */
     .shell {
       display: grid;
-      grid-template-rows: 60px 1fr;
-      grid-template-columns: 1fr 360px;
+      grid-template-rows: 58px 1fr;
+      grid-template-columns: 1fr 340px;
       height: 100vh;
     }
 
-    /* ── Top Nav Bar ── */
+    /* ─── Top bar ────────────────────────────── */
     .topbar {
       grid-column: 1 / -1;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 1.5rem;
-      background: rgba(8, 15, 10, 0.92);
+      background: rgba(3, 10, 4, 0.40);
       border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      z-index: 100;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      z-index: 50;
     }
 
-    .topbar-brand {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.7rem;
     }
 
     .brand-icon {
-      width: 32px; height: 32px;
+      width: 30px;
+      height: 30px;
       background: linear-gradient(135deg, #4ade80, #16a34a);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem;
-      box-shadow: 0 0 12px rgba(74,222,128,0.4);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: 0.95rem;
+      box-shadow: 0 0 10px rgba(74, 222, 128, 0.35);
     }
 
-    .brand-title {
-      font-family: var(--font-mono);
-      font-size: 1rem;
+    .brand-name {
+      font-family: var(--mono);
+      font-size: 0.95rem;
       font-weight: 600;
-      letter-spacing: 0.02em;
       color: var(--text);
     }
 
-    .brand-title span { color: var(--green); }
-
-    .topbar-center {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
+    .brand-name em {
+      color: var(--green);
+      font-style: normal;
     }
 
-    .live-dot {
-      width: 7px; height: 7px;
+    .live-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .pulse {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--green);
       box-shadow: 0 0 6px var(--green);
-      animation: pulse-dot 2s ease-in-out infinite;
+      animation: blink 2s ease-in-out infinite;
     }
 
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.5; transform: scale(0.75); }
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+      }
     }
 
-    .topbar-actions {
+    .topbar-right {
       display: flex;
+      gap: 0.65rem;
       align-items: center;
-      gap: 0.75rem;
     }
 
     .btn-ghost {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 1rem;
+      padding: 0.38rem 0.9rem;
       background: transparent;
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-family: var(--font-sans);
-      font-size: 0.82rem;
+      border-radius: var(--r-sm);
+      color: var(--muted);
+      font-size: 0.78rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
+      font-family: var(--sans);
     }
+
     .btn-ghost:hover {
       background: var(--green-dim);
-      border-color: var(--border-hover);
+      border-color: rgba(74, 222, 128, 0.25);
       color: var(--green);
     }
 
-    .btn-accent {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 1.1rem;
+    .btn-cta {
+      padding: 0.38rem 1rem;
       background: linear-gradient(135deg, #4ade80, #22c55e);
       border: none;
-      border-radius: var(--radius-sm);
-      color: #0a1a0c;
-      font-family: var(--font-sans);
-      font-size: 0.82rem;
+      border-radius: var(--r-sm);
+      color: #061208;
+      font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 0 14px rgba(74,222,128,0.3);
-    }
-    .btn-accent:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(74,222,128,0.45);
+      transition: all 0.18s ease;
+      font-family: var(--sans);
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.28);
     }
 
-    /* ── Globe Panel ── */
-    .globe-panel {
+    .btn-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(74, 222, 128, 0.42);
+    }
+
+    /* ─── Globe panel ────────────────────────── */
+    .globe-wrap {
       position: relative;
       overflow: hidden;
-      background: radial-gradient(ellipse at center, #0d1f0f 0%, #050d07 100%);
+      background: radial-gradient(ellipse at 50% 50%, #071008 0%, #020704 100%);
     }
 
     #globeViz {
@@ -175,563 +194,656 @@
       height: 100%;
     }
 
-    /* Stat overlay cards on globe */
-    .stats-overlay {
+    /* Stats overlay */
+    .stats-over {
       position: absolute;
-      top: 1.25rem;
-      left: 1.25rem;
+      top: 1.1rem;
+      left: 1.1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      z-index: 10;
+      gap: 0.6rem;
+      z-index: 20;
     }
 
-    .stat-pill {
+    .stat-chip {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1.1rem;
-      background: rgba(8, 15, 10, 0.82);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      min-width: 190px;
-      transition: all 0.3s ease;
-      cursor: default;
-    }
-    .stat-pill:hover {
-      border-color: var(--border-hover);
-      background: rgba(10, 22, 13, 0.92);
-      transform: translateX(3px);
+      gap: 0.65rem;
+      padding: 0.65rem 1rem;
+      background: rgba(3, 10, 4, 0.30);
+      border: 1px solid rgba(74, 222, 128, 0.08);
+      border-radius: var(--r-md);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      min-width: 175px;
+      transition: transform 0.25s ease, border-color 0.25s ease;
     }
 
-    .stat-pill-icon {
-      width: 36px; height: 36px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-    .stat-pill-icon.green  { background: var(--green-dim);  box-shadow: 0 0 10px var(--green-glow); }
-    .stat-pill-icon.orange { background: var(--orange-dim); box-shadow: 0 0 10px rgba(251,146,60,0.3); }
-    .stat-pill-icon.blue   { background: var(--blue-dim);   box-shadow: 0 0 10px rgba(96,165,250,0.3); }
-
-    .stat-pill-body {}
-    .stat-pill-label {
-      font-size: 0.7rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      margin-bottom: 0.1rem;
-    }
-    .stat-pill-value {
-      font-family: var(--font-mono);
-      font-size: 1.35rem;
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1;
-    }
-    .stat-pill-value.green  { color: var(--green); }
-    .stat-pill-value.orange { color: var(--orange); }
-    .stat-pill-value.blue   { color: var(--blue); }
-
-    /* Globe legend bottom-left */
-    .globe-legend {
-      position: absolute;
-      bottom: 1.25rem;
-      left: 1.25rem;
-      display: flex;
-      gap: 1.25rem;
-      align-items: center;
-      padding: 0.6rem 1rem;
-      background: rgba(8, 15, 10, 0.8);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      backdrop-filter: blur(12px);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      z-index: 10;
-    }
-    .legend-dot {
-      display: inline-block;
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      margin-right: 0.4rem;
-      vertical-align: middle;
+    .stat-chip:hover {
+      transform: translateX(4px);
+      border-color: rgba(74, 222, 128, 0.20);
     }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      background: var(--surface-solid);
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .sidebar-header {
-      padding: 1.1rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .sidebar-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-    .sidebar-badge {
-      padding: 0.2rem 0.6rem;
-      background: var(--green-dim);
-      border: 1px solid rgba(74,222,128,0.25);
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-family: var(--font-mono);
-      color: var(--green);
-      font-weight: 600;
-    }
-
-    .sidebar-section {
-      padding: 1rem 1.25rem 0.5rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-
-    /* Top Metrics in sidebar */
-    .sidebar-metrics {
+    .chip-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      padding: 0 1.25rem 1rem;
+      place-items: center;
+      font-size: 0.9rem;
       flex-shrink: 0;
     }
 
-    .metric-card {
-      padding: 0.9rem;
-      background: rgba(74,222,128,0.04);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      transition: all 0.25s ease;
+    .chip-icon.g {
+      background: rgba(74, 222, 128, 0.10);
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.25);
     }
-    .metric-card:hover {
-      border-color: var(--border-hover);
-      background: rgba(74,222,128,0.08);
+
+    .chip-icon.o {
+      background: rgba(251, 146, 60, 0.10);
+      box-shadow: 0 0 8px rgba(251, 146, 60, 0.22);
     }
-    .metric-card-label {
+
+    .chip-icon.b {
+      background: rgba(96, 165, 250, 0.10);
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.22);
+    }
+
+    .chip-label {
       font-size: 0.65rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
-      color: var(--text-muted);
-      margin-bottom: 0.35rem;
+      color: var(--muted);
+      margin-bottom: 0.08rem;
+      opacity: 0.75;
     }
-    .metric-card-value {
-      font-family: var(--font-mono);
-      font-size: 1.2rem;
+
+    .chip-val {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .chip-val.g {
+      color: var(--green);
+    }
+
+    .chip-val.o {
+      color: var(--orange);
+    }
+
+    .chip-val.b {
+      color: var(--blue);
+    }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      bottom: 1.1rem;
+      left: 1.1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.5rem 0.9rem;
+      background: rgba(3, 10, 4, 0.25);
+      border: 1px solid rgba(74, 222, 128, 0.07);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      font-size: 0.72rem;
+      color: var(--muted);
+      z-index: 20;
+    }
+
+    .ldot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 1.1rem;
+      right: 1.1rem;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: rgba(122, 171, 132, 0.40);
+      background: rgba(3, 10, 4, 0.18);
+      padding: 0.35rem 0.65rem;
+      border-radius: 20px;
+      border: 1px solid rgba(74, 222, 128, 0.05);
+      backdrop-filter: blur(12px);
+      z-index: 20;
+    }
+
+    /* ─── Sidebar ────────────────────────────── */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: rgba(3, 10, 4, 0.48);
+      border-left: 1px solid rgba(74, 222, 128, 0.07);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+
+    .sb-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.15rem;
+      border-bottom: 1px solid rgba(74, 222, 128, 0.06);
+      flex-shrink: 0;
+    }
+
+    .sb-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: rgba(122, 171, 132, 0.65);
+    }
+
+    .sb-badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.14);
+      padding: 0.15rem 0.55rem;
+      border-radius: 20px;
+    }
+
+    .sb-section {
+      padding: 0.85rem 1.15rem 0.4rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: rgba(122, 171, 132, 0.50);
+      flex-shrink: 0;
+    }
+
+    .sb-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      padding: 0 1.15rem 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .mc {
+      padding: 0.8rem;
+      background: rgba(74, 222, 128, 0.02);
+      border: 1px solid rgba(74, 222, 128, 0.06);
+      border-radius: var(--r-sm);
+      transition: border-color 0.2s ease;
+    }
+
+    .mc:hover {
+      border-color: rgba(74, 222, 128, 0.15);
+    }
+
+    .mc-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: rgba(122, 171, 132, 0.55);
+      margin-bottom: 0.3rem;
+    }
+
+    .mc-val {
+      font-family: var(--mono);
+      font-size: 1.15rem;
       font-weight: 700;
       color: var(--green);
       line-height: 1;
     }
-    .metric-card-value.warn { color: var(--orange); }
-    .metric-card-sub {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      margin-top: 0.2rem;
+
+    .mc-val.warn {
+      color: var(--orange);
     }
 
-    /* Activity Feed */
-    .activity-feed {
+    .mc-sub {
+      font-size: 0.6rem;
+      color: rgba(122, 171, 132, 0.45);
+      margin-top: 0.18rem;
+    }
+
+    /* Feed */
+    .feed {
       flex: 1;
       overflow-y: auto;
-      padding: 0 1.25rem 1.25rem;
+      padding: 0 1.15rem 1rem;
     }
-    .activity-feed::-webkit-scrollbar { width: 4px; }
-    .activity-feed::-webkit-scrollbar-track { background: transparent; }
-    .activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-    .activity-item {
+    .feed::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .feed::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .feed::-webkit-scrollbar-thumb {
+      background: rgba(74, 222, 128, 0.12);
+      border-radius: 3px;
+    }
+
+    .feed-item {
       display: flex;
       align-items: flex-start;
-      gap: 0.75rem;
-      padding: 0.8rem 0;
-      border-bottom: 1px solid rgba(74,222,128,0.06);
-      animation: slide-in 0.4s ease forwards;
-    }
-    @keyframes slide-in {
-      from { opacity: 0; transform: translateX(12px); }
-      to   { opacity: 1; transform: translateX(0); }
+      gap: 0.65rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid rgba(74, 222, 128, 0.05);
+      opacity: 0;
+      animation: fadeSlide 0.35s ease forwards;
     }
 
-    .activity-dot {
-      width: 8px; height: 8px;
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .fdot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      margin-top: 5px;
+      margin-top: 4px;
       flex-shrink: 0;
     }
-    .activity-dot.pending   { background: var(--orange); box-shadow: 0 0 6px rgba(251,146,60,0.6); }
-    .activity-dot.collected { background: var(--green);  box-shadow: 0 0 6px rgba(74,222,128,0.6); }
 
-    .activity-content { flex: 1; }
-    .activity-desc {
-      font-size: 0.8rem;
+    .fdot.pending {
+      background: var(--orange);
+      box-shadow: 0 0 5px rgba(251, 146, 60, 0.5);
+    }
+
+    .fdot.collected {
+      background: var(--green);
+      box-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+    }
+
+    .fdesc {
+      font-size: 0.77rem;
       color: var(--text);
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.15rem;
       line-height: 1.4;
     }
-    .activity-meta {
-      font-size: 0.68rem;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
+
+    .fmeta {
+      font-size: 0.64rem;
+      font-family: var(--mono);
+      color: rgba(122, 171, 132, 0.55);
     }
 
-    .activity-tag {
-      font-size: 0.65rem;
-      padding: 0.15rem 0.5rem;
+    .ftag {
+      font-size: 0.6rem;
+      padding: 0.13rem 0.45rem;
       border-radius: 4px;
-      font-weight: 600;
+      font-weight: 700;
       flex-shrink: 0;
       align-self: flex-start;
       margin-top: 2px;
     }
-    .activity-tag.pending   { background: var(--orange-dim); color: var(--orange); }
-    .activity-tag.collected { background: var(--green-dim);  color: var(--green); }
 
-    /* Empty state */
-    .empty-feed {
+    .ftag.pending {
+      background: var(--orange-dim);
+      color: var(--orange);
+    }
+
+    .ftag.collected {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .feed-empty {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 2rem;
+      gap: 0.4rem;
+      padding: 2rem 1rem;
       text-align: center;
-      color: var(--text-muted);
-      font-size: 0.82rem;
+      color: rgba(122, 171, 132, 0.45);
+      font-size: 0.78rem;
     }
-    .empty-feed .icon { font-size: 2rem; opacity: 0.4; }
 
-    /* Footer bar in sidebar */
-    .sidebar-footer {
-      padding: 0.9rem 1.25rem;
-      border-top: 1px solid var(--border);
+    .feed-empty .ei {
+      font-size: 1.8rem;
+      opacity: 0.35;
+    }
+
+    /* Footer */
+    .sb-foot {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 0.8rem 1.15rem;
+      border-top: 1px solid rgba(74, 222, 128, 0.06);
       flex-shrink: 0;
     }
-    .sync-info {
-      font-size: 0.68rem;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
+
+    .sync-txt {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: rgba(122, 171, 132, 0.50);
     }
-    .sync-info span { color: var(--green); }
+
+    .sync-txt b {
+      color: var(--green);
+      font-weight: 500;
+    }
 
     .refresh-btn {
-      display: flex; align-items: center; gap: 0.35rem;
-      padding: 0.4rem 0.75rem;
-      background: var(--green-dim);
-      border: 1px solid rgba(74,222,128,0.2);
-      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.35rem 0.7rem;
+      background: rgba(74, 222, 128, 0.07);
+      border: 1px solid rgba(74, 222, 128, 0.14);
+      border-radius: var(--r-sm);
       color: var(--green);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
+      font-family: var(--sans);
     }
+
     .refresh-btn:hover {
-      background: rgba(74,222,128,0.22);
-      border-color: var(--green);
-    }
-    .refresh-btn svg { transition: transform 0.4s ease; }
-    .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Globe rotate hint */
-    .rotate-hint {
-      position: absolute;
-      bottom: 1.25rem;
-      right: 1.25rem;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      background: rgba(8,15,10,0.75);
-      padding: 0.4rem 0.75rem;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      backdrop-filter: blur(10px);
-      z-index: 10;
+      background: rgba(74, 222, 128, 0.14);
+      border-color: rgba(74, 222, 128, 0.28);
     }
 
-    /* Number counter animation */
-    .counting { animation: count-pop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes count-pop {
-      from { transform: scale(0.8); opacity: 0.6; }
-      to   { transform: scale(1);   opacity: 1; }
+    .refresh-btn.loading svg {
+      animation: spin 0.7s linear infinite;
     }
 
-    /* Responsive */
-    @media (max-width: 900px) {
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Count pop */
+    .pop {
+      animation: countPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes countPop {
+      from {
+        transform: scale(0.75);
+        opacity: 0.5;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 860px) {
       .shell {
         grid-template-columns: 1fr;
-        grid-template-rows: 60px 1fr auto;
+        grid-template-rows: 58px 1fr auto;
       }
+
       .sidebar {
         border-left: none;
-        border-top: 1px solid var(--border);
-        max-height: 280px;
+        border-top: 1px solid rgba(74, 222, 128, 0.07);
+        max-height: 260px;
       }
     }
   </style>
 </head>
+
 <body>
+  <div class="shell">
 
-<div class="shell">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🌿</div>
+        <span class="brand-name">Plastic <em>Mitra</em></span>
+      </div>
 
-  <!-- ── Top Navigation Bar ── -->
-  <header class="topbar">
-    <div class="topbar-brand">
-      <div class="brand-icon">🌿</div>
-      <span class="brand-title">Plastic <span>Mitra</span></span>
-    </div>
+      <div class="live-chip">
+        <div class="pulse"></div>
+        Live Impact Map &nbsp;·&nbsp; auto-refresh 30s
+      </div>
 
-    <div class="topbar-center">
-      <div class="live-dot"></div>
-      Live Impact Map &nbsp;·&nbsp; Auto-refreshing every 30s
-    </div>
+      <div class="topbar-right">
+        <button class="btn-ghost" id="btnSpin">⏸ Pause</button>
+        <button class="btn-cta" onclick="location.href='../login.html'">Sign In →</button>
+      </div>
+    </header>
 
-    <div class="topbar-actions">
-      <button class="btn-ghost" id="btnToggleSpin">⏸ Pause Globe</button>
-      <button class="btn-accent" onclick="window.location.href='../login.html'">Sign In →</button>
-    </div>
-  </header>
+    <!-- Globe -->
+    <div class="globe-wrap">
+      <div id="globeViz"></div>
 
-  <!-- ── Globe Panel ── -->
-  <div class="globe-panel">
-    <div id="globeViz"></div>
-
-    <!-- Stat overlays -->
-    <div class="stats-overlay">
-      <div class="stat-pill">
-        <div class="stat-pill-icon green">🗺️</div>
-        <div class="stat-pill-body">
-          <div class="stat-pill-label">Total Pings</div>
-          <div class="stat-pill-value green" id="statTotal">—</div>
+      <div class="stats-over">
+        <div class="stat-chip">
+          <div class="chip-icon g">🗺️</div>
+          <div>
+            <div class="chip-label">Total Pings</div>
+            <div class="chip-val g" id="statTotal">—</div>
+          </div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-icon o">⏳</div>
+          <div>
+            <div class="chip-label">Pending</div>
+            <div class="chip-val o" id="statPending">—</div>
+          </div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-icon b">✅</div>
+          <div>
+            <div class="chip-label">Collected</div>
+            <div class="chip-val b" id="statCollected">—</div>
+          </div>
         </div>
       </div>
-      <div class="stat-pill">
-        <div class="stat-pill-icon orange">⏳</div>
-        <div class="stat-pill-body">
-          <div class="stat-pill-label">Pending Cleanup</div>
-          <div class="stat-pill-value orange" id="statPending">—</div>
-        </div>
+
+      <div class="legend">
+        <span><span class="ldot" style="background:#fb923c;box-shadow:0 0 4px #fb923c;"></span>Pending</span>
+        <span><span class="ldot" style="background:#4ade80;box-shadow:0 0 4px #4ade80;"></span>Collected</span>
       </div>
-      <div class="stat-pill">
-        <div class="stat-pill-icon blue">✅</div>
-        <div class="stat-pill-body">
-          <div class="stat-pill-label">Collected</div>
-          <div class="stat-pill-value blue" id="statCollected">—</div>
-        </div>
-      </div>
+
+      <div class="hint">🖱 drag · scroll to zoom</div>
     </div>
 
-    <!-- Legend -->
-    <div class="globe-legend">
-      <span><span class="legend-dot" style="background:#fb923c;box-shadow:0 0 5px #fb923c;"></span>Pending</span>
-      <span><span class="legend-dot" style="background:#4ade80;box-shadow:0 0 5px #4ade80;"></span>Collected</span>
-    </div>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sb-head">
+        <span class="sb-title">Live Activity</span>
+        <span class="sb-badge" id="evtCount">0 events</span>
+      </div>
 
-    <div class="rotate-hint">🖱 Drag to rotate</div>
+      <div class="sb-section">Summary</div>
+      <div class="sb-metrics">
+        <div class="mc">
+          <div class="mc-label">Success Rate</div>
+          <div class="mc-val" id="mRate">—%</div>
+          <div class="mc-sub">collected / total</div>
+        </div>
+        <div class="mc">
+          <div class="mc-label">Open Pings</div>
+          <div class="mc-val warn" id="mOpen">—</div>
+          <div class="mc-sub">need pickup</div>
+        </div>
+      </div>
+
+      <div class="sb-section">Recent Events</div>
+      <div class="feed" id="feed">
+        <div class="feed-empty">
+          <div class="ei">🌐</div>Loading…
+        </div>
+      </div>
+
+      <div class="sb-foot">
+        <div class="sync-txt">Last sync: <b id="syncTime">—</b></div>
+        <button class="refresh-btn" id="refreshBtn" onclick="load()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </aside>
+
   </div>
 
-  <!-- ── Sidebar ── -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Live Activity</span>
-      <span class="sidebar-badge" id="activityCount">0 events</span>
-    </div>
+  <script>
+    /* ── Supabase ── */
+    const SB_URL = 'https://wzdroididrergcjiwoty.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
+    let sb = null;
+    try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch (e) { }
 
-    <div class="sidebar-section">Summary</div>
-    <div class="sidebar-metrics">
-      <div class="metric-card">
-        <div class="metric-card-label">Success Rate</div>
-        <div class="metric-card-value" id="metricRate">—%</div>
-        <div class="metric-card-sub">Collected / Total</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-label">Open Pings</div>
-        <div class="metric-card-value warn" id="metricOpen">—</div>
-        <div class="metric-card-sub">Need pickup</div>
-      </div>
-    </div>
+    /* ── Globe ── */
+    const el = document.getElementById('globeViz');
 
-    <div class="sidebar-section">Recent Events</div>
-    <div class="activity-feed" id="activityFeed">
-      <div class="empty-feed">
-        <div class="icon">🌐</div>
-        Loading activity...
-      </div>
-    </div>
+    const globe = Globe()(el)
+      .globeImageUrl('')
+      .globeMaterial(new THREE.MeshBasicMaterial({
+        color: 0x22c55e,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.30
+      }))
+      .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
+      .pointColor(d => d.status === 'collected' ? '#4ade80' : '#fb923c')
+      .pointAltitude(d => d.status === 'collected' ? 0.04 : 0.11)
+      .pointRadius(0.32)
+      .pointResolution(10)
+      .pointLabel(d => {
+        const col = d.status === 'collected' ? '#4ade80' : '#fb923c';
+        const lbl = d.status === 'collected' ? '✅ Collected' : '⏳ Pending';
+        return `<div style="background:rgba(3,10,4,0.88);border:1px solid ${col};border-radius:8px;
+              padding:8px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#d4edd8;">
+                <b style="color:${col};">${lbl}</b><br/>
+                📍 ${Number(d.lat).toFixed(3)}, ${Number(d.lng).toFixed(3)}
+              </div>`;
+      });
 
-    <div class="sidebar-footer">
-      <div class="sync-info">Last sync: <span id="syncTime">—</span></div>
-      <button class="refresh-btn" id="refreshBtn" onclick="loadMarkers()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M23 4v6h-6M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-        </svg>
-        Refresh
-      </button>
-    </div>
-  </aside>
-
-</div>
-
-<script>
-  /* ── Supabase ── */
-  const DB_URL = 'https://wzdroididrergcjiwoty.supabase.co';
-  const DB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
-  let sb = null;
-  try { sb = supabase.createClient(DB_URL, DB_KEY); } catch(e) {}
-
-  /* ── Globe init ── */
-  const globeEl = document.getElementById('globeViz');
-  const globe = Globe()(globeEl)
-    .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
-    .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
-    .pointColor(p => p.status === 'collected' ? '#4ade80' : '#fb923c')
-    .pointAltitude(p => p.status === 'collected' ? 0.04 : 0.10)
-    .pointRadius(0.3)
-    .pointResolution(12)
-    .pointLabel(p => `
-      <div style="background:rgba(8,15,10,0.9);border:1px solid ${p.status==='collected'?'#4ade80':'#fb923c'};
-           border-radius:8px;padding:8px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#e8f5e9;">
-        <b style="color:${p.status==='collected'?'#4ade80':'#fb923c'};">${p.status==='collected'?'✅ Collected':'⏳ Pending'}</b><br/>
-        📍 ${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}
-      </div>
-    `);
-
-  /* Sizing */
-  function resizeGlobe() {
-    const w = globeEl.clientWidth;
-    const h = globeEl.clientHeight;
-    globe.width(w).height(h);
-  }
-  resizeGlobe();
-  window.addEventListener('resize', resizeGlobe);
-
-  /* Auto-rotation */
-  let spinning = true;
-  globe.controls().autoRotate = true;
-  globe.controls().autoRotateSpeed = 0.35;
-  globe.controls().enableZoom = true;
-
-  document.getElementById('btnToggleSpin').addEventListener('click', function() {
-    spinning = !spinning;
-    globe.controls().autoRotate = spinning;
-    this.textContent = spinning ? '⏸ Pause Globe' : '▶ Resume Globe';
-  });
-
-  /* ── Data & UI ── */
-  function animateValue(el, val) {
-    el.classList.remove('counting');
-    void el.offsetWidth;
-    el.textContent = val;
-    el.classList.add('counting');
-  }
-
-  function renderFeed(arr) {
-    const feed = document.getElementById('activityFeed');
-    if (!arr.length) {
-      feed.innerHTML = '<div class="empty-feed"><div class="icon">🌿</div>No pings tracked yet</div>';
-      return;
+    /* Size globe to its container */
+    function sizeGlobe() {
+      globe.width(el.clientWidth).height(el.clientHeight);
     }
-    const recent = arr.slice().reverse().slice(0, 30);
-    feed.innerHTML = recent.map((p, i) => {
-      const isCollected = p.status === 'collected';
-      const coordStr = `${Number(p.lat).toFixed(2)}°, ${Number(p.lng).toFixed(2)}°`;
-      const timeStr = p.reported_at
-        ? new Date(p.reported_at).toLocaleString('en-IN', {hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})
-        : 'Just now';
-      return `
-        <div class="activity-item" style="animation-delay:${i * 0.04}s">
-          <div class="activity-dot ${p.status}"></div>
-          <div class="activity-content">
-            <div class="activity-desc">Waste ping at ${coordStr}</div>
-            <div class="activity-meta">${timeStr}</div>
-          </div>
-          <span class="activity-tag ${p.status}">${isCollected ? 'Done' : 'Open'}</span>
+    sizeGlobe();
+    window.addEventListener('resize', sizeGlobe);
+
+    /* Auto-rotate */
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.30;
+    globe.controls().enableZoom = true;
+
+    let spinning = true;
+    document.getElementById('btnSpin').addEventListener('click', function () {
+      spinning = !spinning;
+      globe.controls().autoRotate = spinning;
+      this.textContent = spinning ? '⏸ Pause' : '▶ Resume';
+    });
+
+    /* ── UI helpers ── */
+    function pop(id, val) {
+      const el = document.getElementById(id);
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.textContent = val;
+      el.classList.add('pop');
+    }
+
+    function renderFeed(arr) {
+      const feed = document.getElementById('feed');
+      if (!arr.length) {
+        feed.innerHTML = '<div class="feed-empty"><div class="ei">🌿</div>No pings yet</div>';
+        return;
+      }
+      const items = arr.slice().reverse().slice(0, 30);
+      feed.innerHTML = items.map((d, i) => {
+        const coord = `${Number(d.lat).toFixed(2)}°, ${Number(d.lng).toFixed(2)}°`;
+        const when = d.reported_at
+          ? new Date(d.reported_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+          : 'Just now';
+        return `<div class="feed-item" style="animation-delay:${i * 0.035}s">
+        <div class="fdot ${d.status}"></div>
+        <div style="flex:1">
+          <div class="fdesc">Waste ping at ${coord}</div>
+          <div class="fmeta">${when}</div>
         </div>
-      `;
-    }).join('');
-    document.getElementById('activityCount').textContent = `${arr.length} events`;
-  }
-
-  function applyData(arr) {
-    globe.pointsData(arr);
-    const pending   = arr.filter(x => x.status !== 'collected').length;
-    const collected = arr.filter(x => x.status === 'collected').length;
-    const rate      = arr.length ? Math.round((collected / arr.length) * 100) : 0;
-
-    animateValue(document.getElementById('statTotal'),     arr.length);
-    animateValue(document.getElementById('statPending'),   pending);
-    animateValue(document.getElementById('statCollected'), collected);
-    animateValue(document.getElementById('metricRate'),    rate + '%');
-    animateValue(document.getElementById('metricOpen'),    pending);
-
-    document.getElementById('syncTime').textContent = new Date().toLocaleTimeString('en-IN');
-
-    renderFeed(arr);
-  }
-
-  async function loadMarkers() {
-    const btn = document.getElementById('refreshBtn');
-    btn.classList.add('spinning');
-
-    let data = null;
-    if (sb) {
-      try {
-        const res = await sb.from('dashboard').select('latitude, longitude, status, reported_at');
-        data = res.data;
-      } catch(e) {}
+        <span class="ftag ${d.status}">${d.status === 'collected' ? 'Done' : 'Open'}</span>
+      </div>`;
+      }).join('');
+      document.getElementById('evtCount').textContent = `${arr.length} events`;
     }
 
-    if (data && data.length) {
-      applyData(data.map(x => ({
-        lat: x.latitude, lng: x.longitude,
-        status: x.status,
-        reported_at: x.reported_at
-      })));
-    } else {
-      // Fallback demo data spread across India
-      applyData([
-        { lat: 12.971, lng: 77.594, status: 'pending',   reported_at: new Date(Date.now()-3e5).toISOString() },
-        { lat: 13.082, lng: 80.270, status: 'collected', reported_at: new Date(Date.now()-6e5).toISOString() },
-        { lat: 19.076, lng: 72.877, status: 'pending',   reported_at: new Date(Date.now()-9e5).toISOString() },
-        { lat: 28.614, lng: 77.209, status: 'collected', reported_at: new Date(Date.now()-12e5).toISOString() },
-        { lat: 22.572, lng: 88.363, status: 'pending',   reported_at: new Date(Date.now()-15e5).toISOString() },
-        { lat: 17.385, lng: 78.486, status: 'collected', reported_at: new Date(Date.now()-18e5).toISOString() },
-        { lat: 26.850, lng: 80.949, status: 'pending',   reported_at: new Date(Date.now()-21e5).toISOString() },
-        { lat: 23.259, lng: 77.412, status: 'pending',   reported_at: new Date(Date.now()-24e5).toISOString() },
-      ]);
+    function applyData(arr) {
+      globe.pointsData(arr);
+      const pending = arr.filter(d => d.status !== 'collected').length;
+      const collected = arr.length - pending;
+      const rate = arr.length ? Math.round((collected / arr.length) * 100) : 0;
+
+      pop('statTotal', arr.length);
+      pop('statPending', pending);
+      pop('statCollected', collected);
+      pop('mRate', rate + '%');
+      pop('mOpen', pending);
+
+      document.getElementById('syncTime').textContent = new Date().toLocaleTimeString('en-IN');
+      renderFeed(arr);
     }
 
-    btn.classList.remove('spinning');
-  }
+    /* ── Load data ── */
+    async function load() {
+      const btn = document.getElementById('refreshBtn');
+      btn.classList.add('loading');
 
-  loadMarkers();
+      let data = null;
+      if (sb) {
+        try {
+          const res = await sb.from('dashboard').select('latitude,longitude,status,reported_at');
+          data = res.data;
+        } catch (e) { console.warn('Supabase error', e); }
+      }
 
-  // Auto-refresh every 30 seconds
-  setInterval(loadMarkers, 30000);
-</script>
+      if (data && data.length) {
+        applyData(data.map(r => ({ lat: r.latitude, lng: r.longitude, status: r.status, reported_at: r.reported_at })));
+      } else {
+        /* Demo fallback — cities across India */
+        applyData([
+          { lat: 12.971, lng: 77.594, status: 'pending', reported_at: new Date(Date.now() - 3e5).toISOString() },
+          { lat: 13.082, lng: 80.270, status: 'collected', reported_at: new Date(Date.now() - 6e5).toISOString() },
+          { lat: 19.076, lng: 72.877, status: 'pending', reported_at: new Date(Date.now() - 9e5).toISOString() },
+          { lat: 28.614, lng: 77.209, status: 'collected', reported_at: new Date(Date.now() - 12e5).toISOString() },
+          { lat: 22.572, lng: 88.363, status: 'pending', reported_at: new Date(Date.now() - 15e5).toISOString() },
+          { lat: 17.385, lng: 78.486, status: 'collected', reported_at: new Date(Date.now() - 18e5).toISOString() },
+          { lat: 26.850, lng: 80.949, status: 'pending', reported_at: new Date(Date.now() - 21e5).toISOString() },
+          { lat: 23.259, lng: 77.412, status: 'pending', reported_at: new Date(Date.now() - 24e5).toISOString() },
+        ]);
+      }
+
+      btn.classList.remove('loading');
+    }
+
+    load();
+    setInterval(load, 30000);
+  </script>
 </body>
+
 </html>
