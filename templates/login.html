@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PlasticMitra – Login</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Baloo+2:wght@700;800&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body class="auth-body">
+
+    <div class="auth-wrapper">
+
+        <!-- Language Selector -->
+        <div class="lang-bar">
+            <select id="langSelect" onchange="setLang(this.value)">
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="kn">ಕನ್ನಡ</option>
+            </select>
+        </div>
+
+        <!-- Logo -->
+        <div class="brand">
+            <div class="brand-icon">♻️</div>
+            <h1 class="brand-name">PlasticMitra</h1>
+            <p class="brand-tagline" id="txt-tagline">Clean Village, Green Future</p>
+        </div>
+
+        <!-- Card -->
+        <div class="auth-card">
+            <h2 class="auth-title" id="txt-welcome">Welcome Back</h2>
+            <p class="auth-sub" id="txt-sub">Login to your account</p>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+
+                <div class="form-group">
+                    <label id="txt-email">Email or Phone</label>
+                    <input type="text" id="loginEmail" placeholder="you@example.com" required />
+                </div>
+
+                <div class="form-group">
+                    <label id="txt-password">Password</label>
+                    <div class="input-eye">
+                        <input type="password" id="loginPassword" placeholder="••••••••" required />
+                        <button type="button" class="eye-btn" onclick="togglePwd('loginPassword', this)">👁</button>
+                    </div>
+                </div>
+
+                <div id="loginError" class="error-msg hidden"></div>
+
+                <button type="submit" class="btn-primary" id="txt-loginBtn">Login</button>
+
+            </form>
+
+            <!-- Voice prompt -->
+            <button class="voice-btn" onclick="voicePrompt('login')" title="Listen to instructions">
+                🔊 <span id="txt-voice">Listen to instructions</span>
+            </button>
+
+            <p class="auth-switch">
+                <span id="txt-noAccount">Don't have an account?</span>
+                <a href="signup.html" id="txt-signup">Sign Up</a>
+            </p>
+        </div>
+
+    </div>
+
+    <script src="js/i18n.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/voice.js"></script>
+    <script>
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errEl = document.getElementById('loginError');
+
+            const users = JSON.parse(localStorage.getItem('pm_users') || '[]');
+            const user = users.find(u => (u.email === email || u.phone === email) && u.password === password);
+
+            if (!user) {
+                errEl.textContent = translations[currentLang].invalidCreds || 'Invalid email or password.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            localStorage.setItem('pm_currentUser', JSON.stringify(user));
+            window.location.href = 'dashboard.html';
+        }
+
+        function togglePwd(id, btn) {
+            const inp = document.getElementById(id);
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+        }
+
+        // Redirect if already logged in
+        if (localStorage.getItem('pm_currentUser')) {
+            window.location.href = 'dashboard.html';
+        }
+
+    </script>
+</body>
+
+</html>

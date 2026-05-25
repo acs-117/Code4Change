@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PlasticMitra – Dashboard</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Baloo+2:wght@700;800&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body class="app-body">
+
+    <!-- Top Nav -->
+    <header class="topnav">
+        <div class="topnav-left">
+            <span class="brand-sm">♻️ PlasticMitra</span>
+        </div>
+        <div class="topnav-right">
+            <span class="points-badge">🌿 <span id="navPoints">0</span> pts</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="dash-main">
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+            <div>
+                <p class="welcome-label">Good day,</p>
+                <h2 class="welcome-name" id="userName">Friend</h2>
+                <p class="welcome-village" id="userVillage">📍 Your Village</p>
+            </div>
+            <div class="welcome-avatar" id="userAvatar">R</div>
+        </section>
+
+        <!-- Points Card -->
+        <section class="points-card">
+            <div class="points-left">
+                <p class="points-label">Your Green Points</p>
+                <h3 class="points-value" id="userPoints">0</h3>
+                <p class="points-rank">🏅 Village Rank: <strong id="userRank">#–</strong></p>
+            </div>
+            <div class="points-right">
+                <div class="points-ring">
+                    <span id="pointsRingVal">0</span>
+                    <small>pts</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="section-block">
+            <h3 class="section-title">Quick Actions</h3>
+            <div class="actions-grid">
+
+                <button class="action-card" onclick="openReportModal()">
+                    <span class="action-icon">🗑️</span>
+                    <span class="action-label">Report Bin</span>
+                </button>
+
+                <button class="action-card" onclick="window.location.href='pages/map.html'">
+                    <span class="action-icon">🗺️</span>
+                    <span class="action-label">View Map</span>
+                </button>
+
+                <button class="action-card" onclick="window.location.href='pages/rewards.html'">
+                    <span class="action-icon">🏆</span>
+                    <span class="action-label">Rewards</span>
+                </button>
+
+                <button class="action-card" onclick="window.location.href='pages/cleanup.html'">
+                    <span class="action-icon">📸</span>
+                    <span class="action-label">Before/After</span>
+                </button>
+
+                <button class="action-card" onclick="window.location.href='pages/marketplace.html'">
+                    <span class="action-icon">♻️</span>
+                    <span class="action-label">Exchange</span>
+                </button>
+
+                <button class="action-card" onclick="window.location.href='pages/alerts.html'">
+                    <span class="action-icon">🔔</span>
+                    <span class="action-label">Alerts</span>
+                </button>
+
+            </div>
+        </section>
+
+        <!-- My Reports -->
+        <section class="section-block">
+            <h3 class="section-title">My Recent Reports</h3>
+            <div id="reportsList" class="reports-list">
+                <p class="empty-state">No reports yet. Tap <strong>Report Bin</strong> to get started and earn points!
+                </p>
+            </div>
+        </section>
+
+        <!-- Leaderboard snippet -->
+        <section class="section-block">
+            <h3 class="section-title">Village Leaderboard</h3>
+            <div id="leaderboardList" class="leaderboard-list"></div>
+        </section>
+
+    </main>
+
+    <!-- Report Bin Modal -->
+    <div id="reportModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Report Overflowing Bin</h3>
+                <button onclick="closeReportModal()" class="modal-close">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label>Photo of the bin</label>
+                <div class="upload-area" onclick="document.getElementById('binPhoto').click()">
+                    <input type="file" id="binPhoto" accept="image/*" capture="environment" hidden
+                        onchange="previewPhoto(this)" />
+                    <div id="uploadPlaceholder">
+                        <span style="font-size:2rem">📷</span>
+                        <p>Tap to take photo or upload</p>
+                    </div>
+                    <img id="photoPreview" class="hidden" alt="Preview" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Fill Level</label>
+                <input type="range" id="fillLevel" min="0" max="100" value="85" oninput="updateFillLabel(this.value)" />
+                <p class="fill-label">Fill: <strong id="fillVal">85%</strong>
+                    <span id="fillWarning" class="fill-warning">⚠️ Overflow risk!</span>
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Location</label>
+                <div class="location-row">
+                    <input type="text" id="reportLocation" placeholder="e.g. Near temple, main road" />
+                    <button class="gps-btn" onclick="getGPS()">📍 GPS</button>
+                </div>
+                <p id="gpsStatus" class="gps-status"></p>
+            </div>
+
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea id="reportNotes" placeholder="Any extra details..." rows="2"></textarea>
+            </div>
+
+            <div id="reportSubmitMsg" class="hidden"></div>
+
+            <button class="btn-primary" onclick="submitReport()">Submit Report (+10 pts)</button>
+        </div>
+    </div>
+
+    <script src="js/i18n.js"></script>
+    <script src="js/storage.js"></script>
+
+    <script>
+        let currentUser = null;
+
+        function init() {
+            const stored = localStorage.getItem('pm_currentUser');
+            if (!stored) { window.location.href = 'login.html'; return; }
+            currentUser = JSON.parse(stored);
+
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userVillage').textContent = '📍 ' + currentUser.village + ', ' + currentUser.district;
+            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            updatePointsDisplay();
+            renderReports();
+            renderLeaderboard();
+        }
+
+        function updatePointsDisplay() {
+            const pts = currentUser.points || 0;
+            document.getElementById('userPoints').textContent = pts;
+            document.getElementById('navPoints').textContent = pts;
+            document.getElementById('pointsRingVal').textContent = pts;
+        }
+
+        function renderReports() {
+            const reports = currentUser.reports || [];
+            const el = document.getElementById('reportsList');
+            if (!reports.length) return;
+
+            el.innerHTML = reports.slice().reverse().map(r => `
+        <div class="report-item">
+          <div class="report-icon">${r.fillLevel >= 85 ? '🔴' : r.fillLevel >= 50 ? '🟡' : '🟢'}</div>
+          <div class="report-info">
+            <p class="report-loc">${r.location}</p>
+            <p class="report-meta">${r.fillLevel}% full • ${new Date(r.createdAt).toLocaleDateString('en-IN')}</p>
+          </div>
+          <div class="report-status ${r.status}">${r.status === 'pending' ? '⏳ Pending' : '✅ Collected'}</div>
+        </div>
+      `).join('');
+        }
+
+        function renderLeaderboard() {
+            const users = JSON.parse(localStorage.getItem('pm_users') || '[]');
+            const village = currentUser.village;
+            const sameVillage = users
+                .filter(u => u.village === village)
+                .sort((a, b) => (b.points || 0) - (a.points || 0))
+                .slice(0, 5);
+
+            const myRank = sameVillage.findIndex(u => u.id === currentUser.id) + 1;
+            document.getElementById('userRank').textContent = myRank ? '#' + myRank : '#–';
+
+            const el = document.getElementById('leaderboardList');
+            if (!sameVillage.length) {
+                el.innerHTML = '<p class="empty-state">No other users in your village yet.</p>';
+                return;
+            }
+
+            el.innerHTML = sameVillage.map((u, i) => `
+        <div class="lb-row ${u.id === currentUser.id ? 'lb-me' : ''}">
+          <span class="lb-rank">${['🥇', '🥈', '🥉'][i] || '#' + (i + 1)}</span>
+          <span class="lb-name">${u.name}${u.id === currentUser.id ? ' (you)' : ''}</span>
+          <span class="lb-pts">${u.points || 0} pts</span>
+        </div>
+      `).join('');
+        }
+
+        /* ── Report Modal ── */
+        function openReportModal() {
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.add('hidden');
+            document.getElementById('reportSubmitMsg').classList.add('hidden');
+            document.getElementById('binPhoto').value = '';
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.getElementById('reportLocation').value = '';
+            document.getElementById('gpsStatus').textContent = '';
+            document.getElementById('reportNotes').value = '';
+        }
+
+        function previewPhoto(input) {
+            if (!input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.getElementById('photoPreview');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function updateFillLabel(val) {
+            document.getElementById('fillVal').textContent = val + '%';
+            document.getElementById('fillWarning').style.display = val >= 85 ? 'inline' : 'none';
+        }
+
+        function getGPS() {
+            const status = document.getElementById('gpsStatus');
+            status.textContent = 'Getting location...';
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const loc = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                    document.getElementById('reportLocation').value = loc;
+                    status.textContent = '✅ Location captured';
+                },
+                () => { status.textContent = '❌ Could not get GPS. Please type location.'; }
+            );
+        }
+
+        function submitReport() {
+            const location = document.getElementById('reportLocation').value.trim();
+            const fillLevel = parseInt(document.getElementById('fillLevel').value);
+            const notes = document.getElementById('reportNotes').value.trim();
+            const msgEl = document.getElementById('reportSubmitMsg');
+
+            if (!location) {
+                msgEl.textContent = 'Please enter a location.';
+                msgEl.className = 'error-msg';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            const report = {
+                id: 'rpt_' + Date.now(),
+                location, fillLevel, notes,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            if (!currentUser.reports) currentUser.reports = [];
+            currentUser.reports.push(report);
+            currentUser.points = (currentUser.points || 0) + 10;
+
+            // Save back to users array
+            const users = JSON.parse(localStorage.getItem('pm_users') || '[]');
+            const idx = users.findIndex(u => u.id === currentUser.id);
+            if (idx !== -1) users[idx] = currentUser;
+            localStorage.setItem('pm_users', JSON.stringify(users));
+            localStorage.setItem('pm_currentUser', JSON.stringify(currentUser));
+
+            msgEl.textContent = '✅ Report submitted! You earned 10 Green Points.';
+            msgEl.className = 'success-msg';
+            msgEl.classList.remove('hidden');
+
+            updatePointsDisplay();
+            renderReports();
+            renderLeaderboard();
+
+            setTimeout(closeReportModal, 2000);
+        }
+
+        function logout() {
+            localStorage.removeItem('pm_currentUser');
+            window.location.href = 'login.html';
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>
