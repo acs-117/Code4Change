@@ -7,11 +7,11 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const SCORING_FACTORS = [
-  { key: "plastic_sep", label: "Plastic separated from wet waste", max: 5 },
-  { key: "contamination", label: "Visible contamination level", max: 5 },
-  { key: "bag_usage", label: "Proper bag/container usage", max: 3 },
-  { key: "sorting", label: "Sorting consistency", max: 3 },
-  { key: "non_recyclables", label: "Presence of non-recyclables", max: 4 },
+  { key: "plastic_sep", label: "Plastic separated from wet waste", max: 5, icon: "♻️" },
+  { key: "contamination", label: "Visible contamination level", max: 5, icon: "🧼" },
+  { key: "bag_usage", label: "Proper bag/container usage", max: 3, icon: "📦" },
+  { key: "sorting", label: "Sorting consistency", max: 3, icon: "📊" },
+  { key: "non_recyclables", label: "Presence of non-recyclables", max: 4, icon: "⚠️" },
 ];
 
 let workerSession = null;
@@ -364,7 +364,9 @@ function renderScoringForm() {
     return `
           <div class="score-factor-card">
             <div class="score-factor-top">
-              <span class="score-factor-label">${f.label}
+              <span class="score-factor-label">
+                <span class="score-factor-icon">${f.icon}</span>
+                <span>${f.label}</span>
                 <span class="score-factor-max">(0–${f.max})</span>
               </span>
               <span class="score-factor-val${cur != null ? " scored" : ""}">${cur != null ? cur + " pts" : "—"}</span>
@@ -373,7 +375,7 @@ function renderScoringForm() {
           </div>`;
   }).join("")}
       <div class="score-total-row">
-        <span class="score-total-label">Total score</span>
+        <span class="score-total-label">📈 Total quality score</span>
         <span class="score-total-val">${total != null ? total : "—"} / 20 pts</span>
       </div>
     </div>`;
