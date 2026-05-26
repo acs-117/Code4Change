@@ -67,7 +67,7 @@ async function handleSignup(e) {
   try {
     const table = isUser ? 'users' : 'workers';
     const { data: taking } = await db.from(table).select('id').eq('username', username).maybeSingle();
-    
+
     if (taking) {
       showStatus('status-msg', 'Username already locked by another account instance.', 'error');
       setLoading('submit-btn', false, 'Create account');
@@ -87,8 +87,8 @@ async function handleSignup(e) {
     sessionStorage.setItem('pm_username', username);
 
     showStatus('status-msg', 'Profile allocated! Entering console...', 'success');
-    setTimeout(() => { window.location.href = isUser ? 'pages/user.html' : 'pages/workers.html'; }, 900);
-  } catch(err) {
+    setTimeout(() => { window.location.href = isUser ? 'user.html' : 'workers.html'; }, 900);
+  } catch (err) {
     setLoading('submit-btn', false, 'Create account');
   }
 }
