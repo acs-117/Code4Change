@@ -1,12 +1,11 @@
 /* ============================================================
    supabase-config.js — Supabase Central Configuration
    ============================================================ */
-
 const SUPABASE_URL = 'https://wzdroididrergcjiwoty.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU';
 
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function showStatus(elementId, message, type) {
   const el = document.getElementById(elementId);
@@ -37,7 +36,7 @@ function getCurrentPosition() {
     }
     navigator.geolocation.getCurrentPosition(
       pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      err => reject(new Error('Unable to securely pinpoint current coordinates.'))
+      () => reject(new Error('Unable to securely pinpoint current coordinates.'))
     );
   });
 }

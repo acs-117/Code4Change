@@ -45,7 +45,7 @@ async function handleLogin(e) {
 
     showStatus('status-msg', 'Identity confirmed! Redirecting…', 'success');
     setTimeout(() => {
-      window.location.href = currentRole === 'worker' ? 'pages/workers.html' : 'pages/user.html';
+      window.location.href = currentRole === 'worker' ? 'workers.html' : 'user.html';
     }, 800);
 
   } catch (err) {
