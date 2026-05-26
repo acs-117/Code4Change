@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/shared.css" />
   <link rel="stylesheet" href="css/workers.css" />
+  <script src="js/i18n.js"></script>
 </head>
 <body>
 
@@ -23,42 +24,47 @@
   </div>
 
   <header class="header-nav">
-    <h2>⚙ Worker Portal: <span id="workerTitle" style="color:var(--color-accent)">—</span></h2>
+    <h2><span data-i18n="worker_portal">⚙ Worker Portal:</span> <span id="workerTitle" style="color:var(--color-accent)">—</span></h2>
     <div class="header-right">
       <div class="worker-badge">
         <div class="avatar" id="workerAvatar">—</div>
         <span id="workerName">—</span>
       </div>
-      <button class="btn-secondary" id="signOutBtn">Sign Out</button>
+      <select class="lang-select" onchange="setLanguage(this.value)" style="background:var(--card,#1a1a2e);color:var(--text,#e2e8f0);border:1px solid var(--border,#333);border-radius:6px;padding:0.3rem 0.6rem;font-size:0.85rem;cursor:pointer;">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="kn">ಕನ್ನಡ</option>
+      </select>
+      <button class="btn-secondary" id="signOutBtn" data-i18n="sign_out">Sign Out</button>
     </div>
   </header>
 
   <main class="app-container">
     <div class="metrics-grid">
       <div class="stat-card">
-        <h3>Points Earned</h3>
+        <h3 data-i18n="points_earned">Points Earned</h3>
         <div class="value" id="wPoints" style="color:var(--color-accent)">0</div>
-        <div class="value-label">Reward XP</div>
+        <div class="value-label" data-i18n="reward_xp">Reward XP</div>
       </div>
       <div class="stat-card">
-        <h3>Collections Done</h3>
+        <h3 data-i18n="collections_done">Collections Done</h3>
         <div class="value" id="wDone">0</div>
-        <div class="value-label">Total pickups</div>
+        <div class="value-label" data-i18n="total_pickups">Total pickups</div>
       </div>
       <div class="stat-card">
-        <h3>Pending Tasks</h3>
+        <h3 data-i18n="pending_tasks">Pending Tasks</h3>
         <div class="value" id="wPending" style="color:var(--color-error)">0</div>
-        <div class="value-label">In your radius</div>
+        <div class="value-label" data-i18n="in_your_radius">In your radius</div>
       </div>
       <div class="stat-card">
-        <h3>Segregated Pickups</h3>
+        <h3 data-i18n="segregated_pickups">Segregated Pickups</h3>
         <div class="value" id="wSegregated" style="color:var(--color-segregated)">0</div>
-        <div class="value-label">+20 pts each</div>
+        <div class="value-label" data-i18n="pts_each_20">+20 pts each</div>
       </div>
       <div class="stat-card">
-        <h3>Mixed Waste Pickups</h3>
+        <h3 data-i18n="mixed_waste">Mixed Waste Pickups</h3>
         <div class="value" id="wMixed" style="color:var(--color-mixed)">0</div>
-        <div class="value-label">+10 pts each</div>
+        <div class="value-label" data-i18n="pts_each_10">+10 pts each</div>
       </div>
     </div>
 
@@ -70,21 +76,21 @@
       <div class="panel-sidebar">
         <div class="panel-main">
           <div class="section-title">
-            📋 Active Pickup Queue
+            <span data-i18n="active_queue">📋 Active Pickup Queue</span>
             <span class="section-badge" id="queueBadge">0</span>
           </div>
           <div class="activity-list" id="jobQueue">
-            <div class="empty-state"><span class="empty-state-icon">⏳</span>Loading reports…</div>
+            <div class="empty-state"><span class="empty-state-icon">⏳</span><span data-i18n="loading_reports">Loading reports…</span></div>
           </div>
         </div>
 
         <div class="panel-main">
           <div class="section-title">
-            🏆 Points History
+            <span data-i18n="points_history">🏆 Points History</span>
             <span class="section-badge" id="historyBadge">0</span>
           </div>
           <div class="activity-list" id="pointsLog">
-            <div class="empty-state"><span class="empty-state-icon">📊</span>Collect waste to earn points</div>
+            <div class="empty-state"><span class="empty-state-icon">📊</span><span data-i18n="earn_points">Collect waste to earn points</span></div>
           </div>
         </div>
       </div>

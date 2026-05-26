@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/core.css" />
   <link rel="stylesheet" href="css/auth.css" />
+  <script src="js/i18n.js"></script>
 </head>
 <body class="auth-page">
   <div class="card">
@@ -17,42 +18,50 @@
       <span class="logo-name">Plastic <em>Mitra</em></span>
     </div>
 
-    <h1 class="card-title">Create an account</h1>
-    <p class="card-sub">Join Plastic Mitra and help keep your community clean</p>
+    <div style="text-align:right; margin-bottom:1rem;">
+      <select class="lang-select" onchange="setLanguage(this.value)" style="background:var(--color-surface-alt,#1a1a2e);color:var(--color-text-primary,#e2e8f0);border:1px solid var(--color-border,#333);border-radius:6px;padding:0.3rem 0.6rem;font-size:0.85rem;cursor:pointer;">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="kn">ಕನ್ನಡ</option>
+      </select>
+    </div>
+
+    <h1 class="card-title" data-i18n="signup_title">Create an account</h1>
+    <p class="card-sub" data-i18n="signup_sub">Join Plastic Mitra and help keep your community clean</p>
 
     <div class="role-toggle" role="tablist" aria-label="Account type">
-      <button class="role-btn active" id="tab-user" role="tab" aria-selected="true" onclick="setTab('user')">User</button>
-      <button class="role-btn" id="tab-worker" role="tab" aria-selected="false" onclick="setTab('worker')">Worker</button>
+      <button class="role-btn active" id="tab-user" role="tab" aria-selected="true" onclick="setTab('user')" data-i18n="role_user">User</button>
+      <button class="role-btn" id="tab-worker" role="tab" aria-selected="false" onclick="setTab('worker')" data-i18n="role_worker">Worker</button>
     </div>
 
     <div class="status-msg" id="status-msg" role="alert"></div>
 
     <form id="signup-form" onsubmit="handleSignup(event)" novalidate>
       <div class="tab-panel active" id="panel-user" role="tabpanel">
-        <div class="field"><label for="u-email">Email</label><input id="u-email" type="email" placeholder="you@example.com" /></div>
-        <div class="field"><label for="u-username">Username</label><input id="u-username" type="text" placeholder="your_username" /></div>
-        <div class="field"><label for="u-password">Password</label><input id="u-password" type="password" placeholder="Min 6 chars" /></div>
-        <div class="field"><label for="u-confirm">Confirm password</label><input id="u-confirm" type="password" placeholder="Repeat password" /></div>
+        <div class="field"><label for="u-email" data-i18n="label_email">Email</label><input id="u-email" type="email" placeholder="you@example.com" /></div>
+        <div class="field"><label for="u-username" data-i18n="label_username">Username</label><input id="u-username" type="text" placeholder="your_username" /></div>
+        <div class="field"><label for="u-password" data-i18n="label_password">Password</label><input id="u-password" type="password" placeholder="Min 6 chars" /></div>
+        <div class="field"><label for="u-confirm" data-i18n="label_confirm_pw">Confirm password</label><input id="u-confirm" type="password" placeholder="Repeat password" /></div>
         <div class="field">
-          <label>Home location</label>
+          <label data-i18n="label_home_location">Home location</label>
           <button type="button" class="btn-location" id="location-btn" onclick="captureLocation()">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" stroke-dasharray="3 3"/></svg>
-            Add current location
+            <span data-i18n="btn_add_location">Add current location</span>
           </button>
         </div>
       </div>
 
       <div class="tab-panel" id="panel-worker" role="tabpanel">
-        <div class="field"><label for="w-email">Email</label><input id="w-email" type="email" placeholder="you@example.com" /></div>
-        <div class="field"><label for="w-username">Username</label><input id="w-username" type="text" placeholder="your_username" /></div>
-        <div class="field"><label for="w-password">Password</label><input id="w-password" type="password" placeholder="Min 6 chars" /></div>
-        <div class="field"><label for="w-confirm">Confirm password</label><input id="w-confirm" type="password" placeholder="Repeat password" /></div>
+        <div class="field"><label for="w-email" data-i18n="label_email">Email</label><input id="w-email" type="email" placeholder="you@example.com" /></div>
+        <div class="field"><label for="w-username" data-i18n="label_username">Username</label><input id="w-username" type="text" placeholder="your_username" /></div>
+        <div class="field"><label for="w-password" data-i18n="label_password">Password</label><input id="w-password" type="password" placeholder="Min 6 chars" /></div>
+        <div class="field"><label for="w-confirm" data-i18n="label_confirm_pw">Confirm password</label><input id="w-confirm" type="password" placeholder="Repeat password" /></div>
       </div>
 
-      <button class="btn-primary" id="submit-btn" type="submit">Create account</button>
+      <button class="btn-primary" id="submit-btn" type="submit" data-i18n="btn_create_account">Create account</button>
     </form>
 
-    <div class="card-footer">Already have an account? <a href="login.html">Sign in</a></div>
+    <div class="card-footer"><span data-i18n="signup_footer">Already have an account?</span> <a href="login.html" data-i18n="signup_footer_link">Sign in</a></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
