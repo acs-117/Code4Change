@@ -33,7 +33,7 @@ function startCooldownTimer(lastPingTime) {
     if (remaining <= 0) {
       clearInterval(cooldownInterval);
       btn.disabled = false;
-      btn.innerHTML = "⚡ Request Immediate Pickup";
+      btn.innerHTML = t('btn_pickup');
       info.innerHTML = "";
       if (userSession) db.from('users').update({ ping: false }).eq('id', userSession.id);
       localStorage.removeItem('pm_last_ping_' + (userSession?.id || 'anon'));
@@ -43,7 +43,7 @@ function startCooldownTimer(lastPingTime) {
       const h = Math.floor((s % 86400) / 3600).toString().padStart(2, '0');
       const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
       const sec = (s % 60).toString().padStart(2, '0');
-      btn.innerHTML = `⚡ Ping on Cooldown (${d}d ${h}h ${m}m ${sec}s)`;
+      btn.innerHTML = `⚡ ${t('btn_pickup').replace('⚡ ', '')} (${d}d ${h}h ${m}m ${sec}s)`;
     }
   }
 
@@ -180,7 +180,7 @@ async function loadPointsAndRequests() {
 function renderActivityFeed(requests) {
   const feed = document.getElementById('activityFeed');
   if (requests.length === 0) {
-    feed.innerHTML = `<div style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1.5rem 0;">No pickup requests sent yet.</div>`;
+    feed.innerHTML = `<div style="color:var(--color-text-muted); font-size:0.85rem; text-align:center; padding:1.5rem 0;">${t('no_requests')}</div>`;
     return;
   }
 
@@ -188,24 +188,24 @@ function renderActivityFeed(requests) {
     const timeStr = relTime(new Date(req.reported_at));
     const isCollected = req.status === 'collected';
     const statusColor = isCollected ? 'var(--color-success)' : 'var(--color-warning)';
-    const statusText = isCollected ? 'Collected' : 'Pending';
+    const statusText = isCollected ? t('status_collected') : t('status_pending');
     const details = isCollected
       ? `<div style="font-size:0.75rem; color:var(--color-text-muted); margin-top:0.25rem;">
-           Awarded: <strong style="color:var(--color-accent)">+${req.points_awarded || 0} XP</strong> (${req.segregation_type || 'unclassified'})
+           ${t('awarded_label')} <strong style="color:var(--color-accent)">+${req.points_awarded || 0} XP</strong> (${req.segregation_type || 'unclassified'})
          </div>`
       : '';
 
     return `
       <div style="background:rgba(255,255,255,0.02); border:1px solid var(--color-border); border-radius:var(--radius-sm); padding:0.75rem; margin-bottom:0.5rem; display:flex; flex-direction:column; gap:0.2rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:0.5rem;">
-          <span style="font-size:0.8rem; font-weight:600; flex:1;">📍 Pickup Request</span>
+          <span style="font-size:0.8rem; font-weight:600; flex:1;">${t('pickup_request')}</span>
           <span style="font-size:0.7rem; color:var(--color-text-muted);">${timeStr}</span>
         </div>
         <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--color-text-muted);">
           ${req.latitude.toFixed(5)}, ${req.longitude.toFixed(5)}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.4rem; font-size:0.75rem; gap:0.5rem;">
-          <span>Status: <strong style="color:${statusColor}">${statusText}</strong></span>
+          <span>${t('status_label')} <strong style="color:${statusColor}">${statusText}</strong></span>
         </div>
         ${details}
       </div>`;
