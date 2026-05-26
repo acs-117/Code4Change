@@ -6,19 +6,11 @@ const SUPABASE_URL = "https://wzdroididrergcjiwoty.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const SCORING_FACTORS = [
-  { key: "plastic_sep", label: "Plastic separated from wet waste", max: 5, icon: "♻️" },
-  { key: "contamination", label: "Visible contamination level", max: 5, icon: "🧼" },
-  { key: "bag_usage", label: "Proper bag/container usage", max: 3, icon: "📦" },
-  { key: "sorting", label: "Sorting consistency", max: 3, icon: "📊" },
-  { key: "non_recyclables", label: "Presence of non-recyclables", max: 4, icon: "⚠️" },
-];
-
 let workerSession = null;
 let pendingJobs = [];
 let activeJobId = null;
 let selectedFile = null;
-let scoringAnswers = {};
+let selectedWasteType = null;
 let segregatedCount = 0;
 let mixedCount = 0;
 let workerLocation = null;
@@ -257,7 +249,7 @@ function openModal(jobId) {
   if (!job) return;
   activeJobId = jobId;
   selectedFile = null;
-  scoringAnswers = {};
+  selectedWasteType = null;
   map.closePopup();
 
   document.getElementById("modalContainer").innerHTML = `
@@ -297,7 +289,7 @@ function closeModal() {
   }
   activeJobId = null;
   selectedFile = null;
-  scoringAnswers = {};
+  selectedWasteType = null;
 }
 
 function handleOverlayClick(e) { if (e.target.id === "modalOverlay") closeModal(); }
@@ -323,7 +315,7 @@ function handlePhoto(e) {
 function retakePhoto(e) {
   e.stopPropagation();
   selectedFile = null;
-  scoringAnswers = {};
+  selectedWasteType = null;
   const zone = document.getElementById("captureZone");
   zone.classList.remove("has-photo");
   zone.onclick = triggerCamera;
@@ -338,7 +330,7 @@ function retakePhoto(e) {
 
 // ── Scoring questionnaire ─────────────────────────────────────
 function showClassifyOptions() {
-  scoringAnswers = {};
+  selectedWasteType = null;
   const row = document.getElementById("classifyRow");
   row.style.display = "block";
   renderScoringForm();
@@ -346,45 +338,41 @@ function showClassifyOptions() {
 
 function renderScoringForm() {
   const row = document.getElementById("classifyRow");
-  const answered = Object.keys(scoringAnswers).length;
-  const allDone = answered === SCORING_FACTORS.length;
-  const total = allDone
-    ? SCORING_FACTORS.reduce((s, f) => s + (scoringAnswers[f.key] || 0), 0)
-    : null;
-
   row.innerHTML = `
     <div class="classify-section">
-      <div class="classify-label">Rate Waste Quality (0–20 pts)</div>
-      ${SCORING_FACTORS.map(f => {
-    const cur = scoringAnswers[f.key];
-    const opts = Array.from({ length: f.max + 1 }, (_, i) => i)
-      .map(i => `<button class="score-opt${cur === i ? " score-opt-active" : ""}"
-            onclick="pickScore('${f.key}', ${i})">${i}</button>`)
-      .join("");
-    return `
-          <div class="score-factor-card">
-            <div class="score-factor-top">
-              <span class="score-factor-label">
-                <span class="score-factor-icon">${f.icon}</span>
-                <span>${f.label}</span>
-                <span class="score-factor-max">(0–${f.max})</span>
-              </span>
-              <span class="score-factor-val${cur != null ? " scored" : ""}">${cur != null ? cur + " pts" : "—"}</span>
-            </div>
-            <div class="score-opts-row">${opts}</div>
-          </div>`;
-  }).join("")}
-      <div class="score-total-row">
-        <span class="score-total-label">📈 Total quality score</span>
-        <span class="score-total-val">${total != null ? total : "—"} / 20 pts</span>
+      <div class="classify-label">Select Waste Classification</div>
+      <div class="classify-options">
+        <label class="classify-option opt-segregated">
+          <input type="radio" name="waste_type" value="segregated" ${selectedWasteType === 'segregated' ? 'checked' : ''} onclick="pickWasteType('segregated')">
+          <div class="classify-option-card">
+            <span class="classify-icon">♻️</span>
+            <span class="classify-type" style="color: var(--color-accent); font-weight: 700;">Segregated Waste</span>
+            <span class="classify-pts" style="color: var(--color-accent); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; margin: 0.2rem 0;">+20 User pts</span>
+            <span style="font-size: 0.7rem; color: var(--color-text-muted); line-height: 1.3;">Sorted, clean plastic & dry recyclables</span>
+          </div>
+        </label>
+        <label class="classify-option opt-mixed">
+          <input type="radio" name="waste_type" value="mixed" ${selectedWasteType === 'mixed' ? 'checked' : ''} onclick="pickWasteType('mixed')">
+          <div class="classify-option-card">
+            <span class="classify-icon">🔀</span>
+            <span class="classify-type" style="color: var(--color-mixed); font-weight: 700;">Mixed Waste</span>
+            <span class="classify-pts" style="color: var(--color-mixed); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; margin: 0.2rem 0;">+10 User pts</span>
+            <span style="font-size: 0.7rem; color: var(--color-text-muted); line-height: 1.3;">Unsorted, wet organic or contaminated waste</span>
+          </div>
+        </label>
+      </div>
+      
+      <div class="score-total-row" style="margin-top: 0.5rem;">
+        <span class="score-total-label" style="font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;">👷 Worker Reward</span>
+        <span class="score-total-val" style="color: var(--color-accent); font-family: var(--font-mono); font-weight: 700; font-size: 0.95rem;">+20 pts earned</span>
       </div>
     </div>`;
 
-  document.getElementById("confirmBtn").disabled = !allDone;
+  document.getElementById("confirmBtn").disabled = !selectedWasteType;
 }
 
-function pickScore(key, val) {
-  scoringAnswers[key] = val;
+function pickWasteType(type) {
+  selectedWasteType = type;
   renderScoringForm();
 }
 
@@ -393,11 +381,10 @@ async function confirmCollection() {
   const job = pendingJobs.find(j => j.id === activeJobId);
   if (!job || !selectedFile) return;
 
-  const allDone = Object.keys(scoringAnswers).length === SCORING_FACTORS.length;
-  if (!allDone) return;
+  if (!selectedWasteType) return;
 
-  const pts = SCORING_FACTORS.reduce((s, f) => s + (scoringAnswers[f.key] || 0), 0);
-  const wasteType = pts >= 14 ? "segregated" : "mixed";
+  const userPts = selectedWasteType === "segregated" ? 20 : 10;
+  const workerPts = 20;
 
   const btn = document.getElementById("confirmBtn");
   btn.disabled = true;
@@ -427,12 +414,12 @@ async function confirmCollection() {
       collected_at: new Date().toISOString(),
       collected_by: workerSession.id,
       photo_url: photoUrl,
-      points_awarded: pts,
-      segregation_type: wasteType
+      points_awarded: userPts,
+      segregation_type: selectedWasteType
     }).eq("id", job.id);
     if (dashErr) throw new Error("Dashboard: " + dashErr.message);
 
-    const newPts = (workerSession.points || 0) + pts;
+    const newPts = (workerSession.points || 0) + workerPts;
     const newDone = (workerSession.total_collections || 0) + 1;
     const { error: wErr } = await sb.from("workers").update({
       points: newPts, total_collections: newDone
@@ -444,10 +431,10 @@ async function confirmCollection() {
 
     if (job.userId) {
       const { data: u } = await sb.from("users").select("points").eq("id", job.userId).single();
-      if (u) await sb.from("users").update({ points: (u.points || 0) + pts }).eq("id", job.userId);
+      if (u) await sb.from("users").update({ points: (u.points || 0) + userPts }).eq("id", job.userId);
     }
 
-    if (wasteType === "segregated") segregatedCount++; else mixedCount++;
+    if (selectedWasteType === "segregated") segregatedCount++; else mixedCount++;
     pendingJobs = pendingJobs.filter(j => j.id !== job.id);
     removeMapMarker(job.id);
     closeModal();
@@ -457,7 +444,7 @@ async function confirmCollection() {
     animateCounter("wSegregated", segregatedCount);
     animateCounter("wMixed", mixedCount);
     await loadHistory();
-    showSuccessModal(pts, wasteType, newPts);
+    showSuccessModal(userPts, selectedWasteType, newPts);
 
   } catch (err) {
     showToast(err.message, "error");
@@ -467,15 +454,19 @@ async function confirmCollection() {
 }
 
 // ── Success modal ─────────────────────────────────────────────
-function showSuccessModal(pts, type, total) {
+function showSuccessModal(userPts, type, total) {
   const overlay = document.createElement("div");
   overlay.className = "success-overlay";
   overlay.innerHTML = `
     <div class="success-card">
       <span class="success-icon">${type === "segregated" ? "♻️" : "🔀"}</span>
       <div class="success-title">Collection Complete!</div>
-      <div class="success-pts">+${pts} pts</div>
-      <div class="success-desc">${type === "segregated" ? "High quality sort ✅ — great segregation score!" : "Mixed waste 🟡 — points awarded based on quality rating."}</div>
+      <div class="success-pts">+20 pts</div>
+      <div class="success-desc">
+        Classified as <strong style="color:${type === 'segregated' ? 'var(--color-accent)' : 'var(--color-mixed)'}">${type === 'segregated' ? 'Segregated' : 'Mixed'}</strong> waste.<br>
+        👷 Worker XP: <strong>+20 pts</strong><br>
+        👤 User XP: <strong>+${userPts} pts</strong>
+      </div>
       <div class="success-total">Total: ${total} pts earned</div>
       <button class="btn-success" onclick="this.closest('.success-overlay').remove()">Continue ✓</button>
     </div>`;
