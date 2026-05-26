@@ -6,17 +6,24 @@ const SUPABASE_URL = "https://wzdroididrergcjiwoty.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJvaWRpZHJlcmdjaml3b3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTQzNDMsImV4cCI6MjA5NTI3MDM0M30.tvOulsFaLx9-9T-NDyoD0_hOqJL7IRpKNpTUdL48jWU";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const POINTS = { segregated: 20, mixed: 10 };
+const SCORING_FACTORS = [
+  { key: "plastic_sep", label: "Plastic separated from wet waste", max: 5 },
+  { key: "contamination", label: "Visible contamination level", max: 5 },
+  { key: "bag_usage", label: "Proper bag/container usage", max: 3 },
+  { key: "sorting", label: "Sorting consistency", max: 3 },
+  { key: "non_recyclables", label: "Presence of non-recyclables", max: 4 },
+];
 
-let workerSession  = null;
-let pendingJobs    = [];
-let activeJobId    = null;
-let selectedFile   = null;
+let workerSession = null;
+let pendingJobs = [];
+let activeJobId = null;
+let selectedFile = null;
+let scoringAnswers = {};
 let segregatedCount = 0;
-let mixedCount      = 0;
-let workerLocation  = null;
-let routingControl  = null;
-const mapMarkers    = {};
+let mixedCount = 0;
+let workerLocation = null;
+let routingControl = null;
+const mapMarkers = {};
 
 // ── Map ───────────────────────────────────────────────────────
 const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
@@ -73,13 +80,13 @@ function addMapMarker(job) {
 
 function removeMapMarker(jobId) {
   if (mapMarkers[jobId]) { map.removeLayer(mapMarkers[jobId]); delete mapMarkers[jobId]; }
-  if (routingControl)    { map.removeControl(routingControl); routingControl = null; }
+  if (routingControl) { map.removeControl(routingControl); routingControl = null; }
 }
 
 // ── Routing ───────────────────────────────────────────────────
 function calculateRoute(targetLat, targetLng) {
   if (!workerLocation) { showToast("Waiting on high-precision GPS lock...", "warn"); return; }
-  if (routingControl)  { map.removeControl(routingControl); }
+  if (routingControl) { map.removeControl(routingControl); }
 
   showToast("Tracing best tactical transit paths...", "success");
 
@@ -102,8 +109,8 @@ function calculateRoute(targetLat, targetLng) {
 // ── Utils ─────────────────────────────────────────────────────
 function relTime(date) {
   const d = Math.floor((Date.now() - date) / 60000);
-  if (d < 1)    return "just now";
-  if (d < 60)   return `${d}m ago`;
+  if (d < 1) return "just now";
+  if (d < 60) return `${d}m ago`;
   if (d < 1440) return `${Math.floor(d / 60)}h ago`;
   return `${Math.floor(d / 1440)}d ago`;
 }
@@ -114,7 +121,7 @@ function showToast(msg, type = "success") {
   t.innerHTML = `<span>${type === "success" ? "✅" : type === "warn" ? "⚠️" : "❌"}</span> ${msg}`;
   document.getElementById("toastContainer").appendChild(t);
   setTimeout(() => {
-    t.style.opacity   = "0";
+    t.style.opacity = "0";
     t.style.transform = "translateX(20px)";
     t.style.transition = "all 0.3s";
     setTimeout(() => t.remove(), 300);
@@ -215,7 +222,7 @@ async function loadHistory() {
   if (error || !data) return;
 
   segregatedCount = data.filter(h => h.segregation_type === "segregated").length;
-  mixedCount      = data.filter(h => h.segregation_type === "mixed").length;
+  mixedCount = data.filter(h => h.segregation_type === "mixed").length;
   animateCounter("wSegregated", segregatedCount);
   animateCounter("wMixed", mixedCount);
   renderHistory(data);
@@ -231,7 +238,7 @@ function renderHistory(rows) {
   }
 
   container.innerHTML = rows.map(h => {
-    const icon  = h.segregation_type === "segregated" ? "♻️" : "🔀";
+    const icon = h.segregation_type === "segregated" ? "♻️" : "🔀";
     const color = h.segregation_type === "segregated" ? "var(--color-segregated)" : "var(--color-mixed)";
     return `
       <div class="points-log-item">
@@ -248,8 +255,9 @@ function renderHistory(rows) {
 function openModal(jobId) {
   const job = pendingJobs.find(j => j.id === jobId);
   if (!job) return;
-  activeJobId  = jobId;
+  activeJobId = jobId;
   selectedFile = null;
+  scoringAnswers = {};
   map.closePopup();
 
   document.getElementById("modalContainer").innerHTML = `
@@ -287,8 +295,9 @@ function closeModal() {
     overlay.style.animation = "fadeIn 0.15s ease reverse forwards";
     setTimeout(() => { document.getElementById("modalContainer").innerHTML = ""; }, 150);
   }
-  activeJobId  = null;
+  activeJobId = null;
   selectedFile = null;
+  scoringAnswers = {};
 }
 
 function handleOverlayClick(e) { if (e.target.id === "modalOverlay") closeModal(); }
@@ -314,6 +323,7 @@ function handlePhoto(e) {
 function retakePhoto(e) {
   e.stopPropagation();
   selectedFile = null;
+  scoringAnswers = {};
   const zone = document.getElementById("captureZone");
   zone.classList.remove("has-photo");
   zone.onclick = triggerCamera;
@@ -323,56 +333,78 @@ function retakePhoto(e) {
     <div class="camera-capture-sub">Photograph the collected waste</div>`;
   document.getElementById("classifyRow").style.display = "none";
   document.getElementById("confirmBtn").disabled = true;
-  document.getElementById("cameraInput").value   = "";
+  document.getElementById("cameraInput").value = "";
 }
 
+// ── Scoring questionnaire ─────────────────────────────────────
 function showClassifyOptions() {
+  scoringAnswers = {};
   const row = document.getElementById("classifyRow");
   row.style.display = "block";
-  row.innerHTML = `
-    <div class="classify-section">
-      <div class="classify-label">Select Waste Type</div>
-      <div class="classify-options">
-        <label class="classify-option opt-segregated">
-          <input type="radio" name="wasteType" value="segregated" onchange="onClassify()">
-          <div class="classify-option-card">
-            <span class="classify-icon">♻️</span>
-            <span class="classify-type">Segregated</span>
-            <span class="classify-pts">+20 pts</span>
-          </div>
-        </label>
-        <label class="classify-option opt-mixed">
-          <input type="radio" name="wasteType" value="mixed" onchange="onClassify()">
-          <div class="classify-option-card">
-            <span class="classify-icon">🔀</span>
-            <span class="classify-type">Mixed</span>
-            <span class="classify-pts">+10 pts</span>
-          </div>
-        </label>
-      </div>
-    </div>`;
+  renderScoringForm();
 }
 
-function onClassify() { document.getElementById("confirmBtn").disabled = false; }
+function renderScoringForm() {
+  const row = document.getElementById("classifyRow");
+  const answered = Object.keys(scoringAnswers).length;
+  const allDone = answered === SCORING_FACTORS.length;
+  const total = allDone
+    ? SCORING_FACTORS.reduce((s, f) => s + (scoringAnswers[f.key] || 0), 0)
+    : null;
+
+  row.innerHTML = `
+    <div class="classify-section">
+      <div class="classify-label">Rate Waste Quality (0–20 pts)</div>
+      ${SCORING_FACTORS.map(f => {
+    const cur = scoringAnswers[f.key];
+    const opts = Array.from({ length: f.max + 1 }, (_, i) => i)
+      .map(i => `<button class="score-opt${cur === i ? " score-opt-active" : ""}"
+            onclick="pickScore('${f.key}', ${i})">${i}</button>`)
+      .join("");
+    return `
+          <div class="score-factor-card">
+            <div class="score-factor-top">
+              <span class="score-factor-label">${f.label}
+                <span class="score-factor-max">(0–${f.max})</span>
+              </span>
+              <span class="score-factor-val${cur != null ? " scored" : ""}">${cur != null ? cur + " pts" : "—"}</span>
+            </div>
+            <div class="score-opts-row">${opts}</div>
+          </div>`;
+  }).join("")}
+      <div class="score-total-row">
+        <span class="score-total-label">Total score</span>
+        <span class="score-total-val">${total != null ? total : "—"} / 20 pts</span>
+      </div>
+    </div>`;
+
+  document.getElementById("confirmBtn").disabled = !allDone;
+}
+
+function pickScore(key, val) {
+  scoringAnswers[key] = val;
+  renderScoringForm();
+}
 
 // ── Confirm collection ────────────────────────────────────────
 async function confirmCollection() {
   const job = pendingJobs.find(j => j.id === activeJobId);
   if (!job || !selectedFile) return;
 
-  const selected = document.querySelector('input[name="wasteType"]:checked');
-  if (!selected) return;
+  const allDone = Object.keys(scoringAnswers).length === SCORING_FACTORS.length;
+  if (!allDone) return;
 
-  const wasteType = selected.value;
-  const pts       = POINTS[wasteType];
-  const btn       = document.getElementById("confirmBtn");
-  btn.disabled    = true;
-  btn.innerHTML   = `<span class="spinner"></span> Uploading…`;
+  const pts = SCORING_FACTORS.reduce((s, f) => s + (scoringAnswers[f.key] || 0), 0);
+  const wasteType = pts >= 14 ? "segregated" : "mixed";
+
+  const btn = document.getElementById("confirmBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Uploading…`;
 
   // Upload photo
   let photoUrl = "";
   try {
-    const ext      = selectedFile.name.split(".").pop() || "jpg";
+    const ext = selectedFile.name.split(".").pop() || "jpg";
     const filePath = `${workerSession.id}/${job.id}_${Date.now()}.${ext}`;
     const { error: uploadErr } = await sb.storage.from("waste-photos").upload(filePath, selectedFile, { upsert: true });
 
@@ -398,14 +430,14 @@ async function confirmCollection() {
     }).eq("id", job.id);
     if (dashErr) throw new Error("Dashboard: " + dashErr.message);
 
-    const newPts  = (workerSession.points || 0) + pts;
+    const newPts = (workerSession.points || 0) + pts;
     const newDone = (workerSession.total_collections || 0) + 1;
     const { error: wErr } = await sb.from("workers").update({
       points: newPts, total_collections: newDone
     }).eq("id", workerSession.id);
     if (wErr) throw new Error("Worker: " + wErr.message);
 
-    workerSession.points            = newPts;
+    workerSession.points = newPts;
     workerSession.total_collections = newDone;
 
     if (job.userId) {
@@ -418,16 +450,16 @@ async function confirmCollection() {
     removeMapMarker(job.id);
     closeModal();
     renderQueue();
-    animateCounter("wPoints",     newPts);
-    animateCounter("wDone",       newDone);
+    animateCounter("wPoints", newPts);
+    animateCounter("wDone", newDone);
     animateCounter("wSegregated", segregatedCount);
-    animateCounter("wMixed",      mixedCount);
+    animateCounter("wMixed", mixedCount);
     await loadHistory();
     showSuccessModal(pts, wasteType, newPts);
 
   } catch (err) {
     showToast(err.message, "error");
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.textContent = "Confirm & Award Points";
   }
 }
@@ -441,7 +473,7 @@ function showSuccessModal(pts, type, total) {
       <span class="success-icon">${type === "segregated" ? "♻️" : "🔀"}</span>
       <div class="success-title">Collection Complete!</div>
       <div class="success-pts">+${pts} pts</div>
-      <div class="success-desc">${type === "segregated" ? "Well segregated ✅ — double points awarded!" : "Mixed waste 🟡 — base points awarded."}</div>
+      <div class="success-desc">${type === "segregated" ? "High quality sort ✅ — great segregation score!" : "Mixed waste 🟡 — points awarded based on quality rating."}</div>
       <div class="success-total">Total: ${total} pts earned</div>
       <button class="btn-success" onclick="this.closest('.success-overlay').remove()">Continue ✓</button>
     </div>`;
@@ -497,13 +529,13 @@ async function boot() {
   }
 
   workerSession = profile;
-  const name    = profile.username;
-  document.getElementById("workerTitle").textContent  = name;
-  document.getElementById("workerName").textContent   = name;
+  const name = profile.username;
+  document.getElementById("workerTitle").textContent = name;
+  document.getElementById("workerName").textContent = name;
   document.getElementById("workerAvatar").textContent = name.substring(0, 2).toUpperCase();
 
   animateCounter("wPoints", profile.points || 0);
-  animateCounter("wDone",   profile.total_collections || 0);
+  animateCounter("wDone", profile.total_collections || 0);
 
   await loadHistory();
   await loadQueue();
