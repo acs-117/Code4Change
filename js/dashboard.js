@@ -1,7 +1,6 @@
-
 // ============================================================
-// dashboard.js — Logic for dashboard.html (Globe view)
-// Dark Green Eco Theme Version
+// dashboard.js — Plastic Mitra Globe View
+// Dark Green Terminal Theme — standalone, no theme.css dep
 // ============================================================
 
 const SUPABASE_URL = "https://wzdroididrergcjiwoty.supabase.co";
@@ -13,132 +12,142 @@ try {
   sbOk = true;
 } catch (_) { }
 
-// ── Globe setup ───────────────────────────────────────────────
-const BLANK_IMG =
+// ── Color palette (mirrors CSS tokens) ────────────────────────
+const C = {
+  greenBright: '#00ff88',
+  blueAccent: '#00d4ff',
+  globeSurface: '#071a0e',
+  globeEmissive: '#0a2e14',
+  atmosphere: '#00ff8844',
+  graticule: '#0d3320',
+  countryFill: '#0c2416',
+  countryStroke: '#1a5c2e',
+};
+
+// ── Blank 1×1 pixel PNG (no default globe texture) ────────────
+const BLANK =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
+// ── Globe init ─────────────────────────────────────────────────
 const globe = Globe()(document.getElementById('globeViz'))
-  .globeImageUrl(BLANK_IMG)
+  .globeImageUrl(BLANK)
+  .backgroundColor('rgba(0,0,0,0)')        // transparent — let body bg show
 
-  // 🌿 DARK GREEN THEME BACKGROUND
-  .backgroundColor('rgba(160, 255, 198, 0.85)')
-
+  // Atmosphere
   .showAtmosphere(true)
-  .atmosphereColor('#c5ffdcff')
-  .atmosphereAltitude(0.08)
+  .atmosphereColor(C.atmosphere)
+  .atmosphereAltitude(0.12)
+
+  // Grid lines
   .showGraticules(true)
 
-  // 🌿 LAND POLYGONS (subtle forest grid)
-  .polygonAltitude(0.005)
-  .polygonCapColor(() => 'rgba(176, 249, 205, 1)')
-  .polygonSideColor(() => 'rgba(193, 255, 169, 0)')
-  .polygonStrokeColor(() => 'rgba(34, 197, 94, 0.18)')
+  // Country polygons
+  .polygonAltitude(0.004)
+  .polygonCapColor(() => C.countryFill)
+  .polygonSideColor(() => 'rgba(0,0,0,0)')
+  .polygonStrokeColor(() => C.countryStroke)
   .polygonsTransitionDuration(0)
 
-  // 📍 POINTS (waste markers)
+  // Waste markers
   .pointsData([])
-  .pointAltitude(0.018)
-  .pointRadius(0.4)
+  .pointAltitude(0.022)
+  .pointRadius(0.38)
   .pointColor(d => d.color)
   .pointsMerge(false)
 
-  // 🌿 PULSE RINGS (softer eco glow)
+  // Pulse rings (pending only)
   .ringsData([])
-  .ringColor(() => t => `rgba(34, 197, 94, ${0.6 * (1 - t)})`)
-  .ringMaxRadius(4)
-  .ringPropagationSpeed(2)
-  .ringRepeatPeriod(1200);
+  .ringColor(() => t => `rgba(0,255,136,${0.7 * (1 - t)})`)
+  .ringMaxRadius(4.5)
+  .ringPropagationSpeed(2.2)
+  .ringRepeatPeriod(1100);
 
-// ── Globe Material (dark earthy tone) ─────────────────────────
-// With this:
+// ── Globe material — deep dark green sphere ────────────────────
 const T = window.THREE;
 if (T) {
   globe.globeMaterial(new T.MeshPhongMaterial({
-    color: new T.Color('#c6ffc8'),
-    emissive: new T.Color('#a8f0aa'),
-    emissiveIntensity: 0.4,
+    color: new T.Color(C.globeSurface),
+    emissive: new T.Color(C.globeEmissive),
+    emissiveIntensity: 0.55,
     transparent: true,
-    opacity: 0.92,
-    shininess: 8
+    opacity: 0.97,
+    shininess: 6,
   }));
 
-  // Add ambient + directional light so the material renders
-  const ambientLight = new T.AmbientLight(0xffffff, 1.2);
-  const dirLight = new T.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(1, 1, 1);
-  globe.scene().add(ambientLight);
-  globe.scene().add(dirLight);
+  // Tint graticule lines to match theme
+  const applyGraticuleTint = () => {
+    globe.scene().traverse(obj => {
+      if ((obj.type === 'Line' || obj.type === 'LineSegments') && obj.material) {
+        obj.material.color = new T.Color('#0d3320');
+        obj.material.opacity = 0.45;
+        obj.material.transparent = true;
+      }
+    });
+  };
+
+  // Lighting — dim ambient + cool directional
+  const ambient = new T.AmbientLight(0x112211, 1.8);
+  const sun = new T.DirectionalLight(0x88ffaa, 1.1);
+  sun.position.set(2, 1.5, 1);
+  const rim = new T.DirectionalLight(0x00ff88, 0.3);
+  rim.position.set(-2, -1, -1);
+  globe.scene().add(ambient, sun, rim);
+
+  globe.onGlobeReady(() => {
+    applyGraticuleTint();
+    dismissLoader();
+  });
+} else {
+  globe.onGlobeReady(dismissLoader);
 }
 
-// ── Controls ──────────────────────────────────────────────────
+// ── Controls ───────────────────────────────────────────────────
 globe.controls().autoRotate = true;
-globe.controls().autoRotateSpeed = 0.3;
+globe.controls().autoRotateSpeed = 0.28;
 globe.controls().enableDamping = true;
-globe.controls().dampingFactor = 0.12;
-globe.controls().minDistance = 120;
-globe.controls().maxDistance = 600;
-globe.pointOfView({ lat: 15, lng: 78, altitude: 2.2 });
+globe.controls().dampingFactor = 0.1;
+globe.controls().minDistance = 115;
+globe.controls().maxDistance = 580;
+globe.pointOfView({ lat: 15, lng: 78, altitude: 2.1 });
 
-// ── Country borders ───────────────────────────────────────────
+// ── Country borders ────────────────────────────────────────────
 fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
   .then(r => r.json())
   .then(geo => globe.polygonsData(geo.features))
   .catch(err => console.warn('Could not load country borders:', err));
 
-// ── Loader ────────────────────────────────────────────────────
+// ── Loader ─────────────────────────────────────────────────────
 function dismissLoader() {
-  const l = document.getElementById('loader');
-  if (l && !l.classList.contains('hidden')) l.classList.add('hidden');
+  const el = document.getElementById('loader');
+  if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
 }
+setTimeout(dismissLoader, 3000); // fallback
 
-globe.onGlobeReady(() => {
-  if (T) {
-    globe.scene().traverse(obj => {
-      if ((obj.type === 'Line' || obj.type === 'LineSegments') && obj.material) {
-        obj.material.color = new T.Color('#14532d');
-        obj.material.opacity = 0.08;
-        obj.material.transparent = true;
-      }
-    });
-  }
-  dismissLoader();
-});
-
-setTimeout(dismissLoader, 2500);
-
-// ── DATA HELPERS ──────────────────────────────────────────────
-
-// 🌿 greener + calmer palette
+// ── Marker colors ──────────────────────────────────────────────
 function markerColor(ping) {
-  return ping ? '#22c55e' : '#0ea5e9';
+  return ping ? C.greenBright : C.blueAccent;
 }
 
+// ── Apply data to globe ────────────────────────────────────────
 function applyData(rows) {
-  const points = rows
-    .filter(r => r.latitude != null && r.longitude != null)
-    .map(r => ({
-      lat: r.latitude,
-      lng: r.longitude,
-      color: markerColor(r.ping),
-      label: r.username || ''
-    }));
-
-  const rings = rows
-    .filter(r => r.ping && r.latitude != null && r.longitude != null)
+  const valid = rows.filter(r => r.latitude != null && r.longitude != null);
+  const points = valid.map(r => ({
+    lat: r.latitude,
+    lng: r.longitude,
+    color: markerColor(r.ping),
+    label: r.username || '',
+  }));
+  const rings = valid
+    .filter(r => r.ping)
     .map(r => ({ lat: r.latitude, lng: r.longitude }));
 
-  globe.pointsData(points);
-  globe.ringsData(rings);
-
-  const total = rows.length;
-  const active = rows.filter(r => r.ping).length;
-  updateStats(total, active);
+  globe.pointsData(points).ringsData(rings);
+  updateStats(rows.length, rows.filter(r => r.ping).length);
 }
 
-// ── LOAD DATA ────────────────────────────────────────────────
+// ── Load from Supabase ─────────────────────────────────────────
 async function loadMarkers() {
   if (!sbOk) { loadDemo(); return; }
-
   try {
     const { data, error } = await sb
       .from('users')
@@ -146,17 +155,8 @@ async function loadMarkers() {
       .not('latitude', 'is', null)
       .not('longitude', 'is', null);
 
-    if (error) {
-      console.error('Supabase error:', error.message);
-      loadDemo();
-      return;
-    }
-
-    if (!data?.length) {
-      updateStats(0, 0);
-      return;
-    }
-
+    if (error) { console.error('Supabase error:', error.message); loadDemo(); return; }
+    if (!data?.length) { updateStats(0, 0); return; }
     applyData(data);
   } catch (e) {
     console.error('Fetch failed:', e);
@@ -164,7 +164,7 @@ async function loadMarkers() {
   }
 }
 
-// ── DEMO DATA ────────────────────────────────────────────────
+// ── Demo fallback ──────────────────────────────────────────────
 function loadDemo() {
   applyData([
     { latitude: 12.870, longitude: 74.842, ping: true, username: 'demo_user_1' },
@@ -176,11 +176,11 @@ function loadDemo() {
     { latitude: 13.083, longitude: 80.270, ping: true, username: 'demo_user_7' },
     { latitude: 12.972, longitude: 77.595, ping: true, username: 'demo_user_8' },
     { latitude: 51.507, longitude: -0.128, ping: true, username: 'demo_user_9' },
-    { latitude: 40.713, longitude: -74.006, ping: false, username: 'demo_user_10' }
+    { latitude: 40.713, longitude: -74.006, ping: false, username: 'demo_user_10' },
   ]);
 }
 
-// ── STATS ────────────────────────────────────────────────────
+// ── Stats display ──────────────────────────────────────────────
 function updateStats(total, active) {
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statPending').textContent = active;
@@ -188,22 +188,17 @@ function updateStats(total, active) {
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// init
+// ── Init ───────────────────────────────────────────────────────
 loadMarkers();
 
-// ── REALTIME ────────────────────────────────────────────────
+// ── Realtime subscription ──────────────────────────────────────
 if (sbOk) {
   sb.channel('users-rt')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'users'
-    }, () => loadMarkers())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, loadMarkers)
     .subscribe();
 }
 
-// ── RESIZE ──────────────────────────────────────────────────
+// ── Resize ────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
-  globe.width(window.innerWidth);
-  globe.height(window.innerHeight);
+  globe.width(window.innerWidth).height(window.innerHeight);
 });

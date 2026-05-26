@@ -1,17 +1,426 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plastic Mitra — Waste Collection Dashboard</title>
   <meta name="description" content="Real-time global waste collection tracking." />
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+
   <script src="https://unpkg.com/globe.gl"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
+  <style>
+    /* ══════════════════════════════════════════
+       DESIGN TOKENS — Dark Green Terminal Theme
+    ══════════════════════════════════════════ */
+    :root {
+      --bg: #060d08;
+      --bg-panel: #0a1510;
+      --bg-card: #0e1e14;
+      --bg-card-hover: #122318;
+
+      --green-bright: #00ff88;
+      --green-mid: #00c460;
+      --green-dim: #00874a;
+      --green-muted: rgba(0, 255, 136, 0.12);
+      --green-border: rgba(0, 255, 136, 0.18);
+
+      --blue-accent: #00d4ff;
+      --blue-dim: rgba(0, 212, 255, 0.15);
+
+      --text-primary: #e8fff2;
+      --text-muted: #5a8a6a;
+      --text-dim: #2e4e38;
+
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+
+      --radius: 8px;
+      --panel-blur: blur(16px);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+    }
+
+    /* ── Globe canvas ─────────────────────── */
+    #globeViz {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ── Radial vignette ──────────────────── */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center,
+          transparent 30%,
+          rgba(6, 13, 8, 0.55) 65%,
+          rgba(6, 13, 8, 0.92) 100%);
+    }
+
+    /* ── Scanline texture overlay ─────────── */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.06) 2px,
+          rgba(0, 0, 0, 0.06) 4px);
+    }
+
+    /* ── Loader ──────────────────────────── */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      background: var(--bg);
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+
+    .loader-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-ring {
+      width: 56px;
+      height: 56px;
+      border: 2px solid var(--text-dim);
+      border-top-color: var(--green-bright);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loader-text {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.25em;
+      color: var(--green-dim);
+      animation: blink 1.2s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* ── Top navigation bar ──────────────── */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: linear-gradient(180deg, rgba(6, 13, 8, 0.95) 0%, transparent 100%);
+      border-bottom: 1px solid var(--green-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .brand-logo span {
+      color: var(--green-bright);
+    }
+
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.75rem;
+      border: 1px solid var(--green-border);
+      border-radius: 999px;
+      background: var(--green-muted);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--green-bright);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green-bright);
+      box-shadow: 0 0 6px var(--green-bright);
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+      }
+    }
+
+    .top-bar a {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius);
+      background: var(--green-muted);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    .top-bar a:hover {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: var(--green-mid);
+      color: var(--green-bright);
+    }
+
+    .top-bar a svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ── Stats panel ─────────────────────── */
+    .stats-panel {
+      position: fixed;
+      top: 80px;
+      left: 1.5rem;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      animation: slideInLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 0.3s;
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.75rem 1.1rem;
+      background: rgba(10, 21, 16, 0.85);
+      backdrop-filter: var(--panel-blur);
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius);
+      min-width: 170px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .stat-card:hover {
+      background: rgba(18, 35, 24, 0.95);
+      border-color: rgba(0, 255, 136, 0.32);
+    }
+
+    .stat-icon {
+      font-size: 1.2rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--green-bright);
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* ── Legend panel ────────────────────── */
+    .legend-panel {
+      position: fixed;
+      bottom: 2rem;
+      left: 1.5rem;
+      z-index: 10;
+      padding: 1rem 1.25rem;
+      background: rgba(10, 21, 16, 0.85);
+      backdrop-filter: var(--panel-blur);
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius);
+      animation: slideInLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 0.5s;
+    }
+
+    .legend-panel h3 {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .legend-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .legend-ring {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-ring.pending {
+      background: var(--green-bright);
+      box-shadow: 0 0 8px var(--green-bright);
+    }
+
+    .legend-ring.collected {
+      background: var(--blue-accent);
+      box-shadow: 0 0 8px var(--blue-accent);
+    }
+
+    /* ── Corner watermark ────────────────── */
+    .corner-mark {
+      position: fixed;
+      bottom: 2rem;
+      right: 1.5rem;
+      z-index: 10;
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    /* ── Responsive ─────────────────────── */
+    @media (max-width: 600px) {
+      .top-bar {
+        padding: 0 1rem;
+      }
+
+      .brand-tag {
+        display: none;
+      }
+
+      .stats-panel {
+        top: 70px;
+        left: 1rem;
+      }
+
+      .legend-panel {
+        bottom: 1rem;
+        left: 1rem;
+      }
+
+      .stat-card {
+        min-width: 140px;
+        padding: 0.6rem 0.85rem;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
   <div class="loader-overlay" id="loader">
@@ -20,6 +429,7 @@
   </div>
 
   <div class="vignette"></div>
+  <div class="scanlines"></div>
 
   <nav class="top-bar">
     <div class="brand">
@@ -45,21 +455,21 @@
 
   <div class="stats-panel" id="statsPanel">
     <div class="stat-card">
-      <div class="stat-icon green">♻️</div>
+      <div class="stat-icon">♻️</div>
       <div>
         <div class="stat-value" id="statTotal">—</div>
         <div class="stat-label">Reports</div>
       </div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon blue">📍</div>
+      <div class="stat-icon">📍</div>
       <div>
         <div class="stat-value" id="statPending">—</div>
         <div class="stat-label">Pending</div>
       </div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon dim">🕐</div>
+      <div class="stat-icon">🕐</div>
       <div>
         <div class="stat-value" id="statTime">—</div>
         <div class="stat-label">Updated</div>
@@ -69,12 +479,19 @@
 
   <div class="legend-panel">
     <h3>Legend</h3>
-    <div class="legend-row"><div class="legend-ring pending"></div> Pending collection</div>
-    <div class="legend-row"><div class="legend-ring collected"></div> Collected</div>
+    <div class="legend-row">
+      <div class="legend-ring pending"></div> Pending collection
+    </div>
+    <div class="legend-row">
+      <div class="legend-ring collected"></div> Collected
+    </div>
   </div>
+
+  <div class="corner-mark">Plastic Mitra © 2026</div>
 
   <div id="globeViz"></div>
 
   <script src="js/dashboard.js"></script>
 </body>
+
 </html>
