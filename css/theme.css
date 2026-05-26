@@ -1,78 +1,279 @@
 /* ============================================================
-   theme.css — Plastic Mitra Design System Tokens (Dark Field Kit)
+   theme.css — Plastic Mitra Design System Tokens (Eco Light Blueprint)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* ── CORE BACKGROUNDS ── */
-  --color-bg: #121614;
-  /* Outer page workspace */
-  --color-surface: #1a1f1c;
-  /* Main panel/card */
-  --color-surface-alt: #222925;
-  /* Input boxes / alternate states */
+  /* ── CORE BACKGROUNDS (Soothing Premium Mint-Sage Eco Palette) ── */
+  --color-bg: #c6ffc8;
+  /* Clean light mint-sage backdrop */
+  --color-surface: rgba(255, 255, 255, 0.5);
+  /* Pure white panels for stark premium contrast */
+  --color-surface-alt: #f4faf6;
+  /* Soft mint-tinted surface for inputs/alternates */
 
   /* ── BORDERS ── */
-  --color-border: #2e3832;
-  --color-border-focus: #4ade80;
+  --color-border: rgba(255, 255, 255, 0.8);
+  /* Subtle leaf-green border lines */
+  --color-border-focus: #166534;
+  /* Deep organic forest green focus */
 
-  /* ── ACCENT (change here to retheme the whole app) ── */
-  --color-accent: #4ade80;
-  --color-accent-hover: #22c55e;
-  --color-accent-dim: rgba(74, 222, 128, 0.10);
-  --color-accent-text: #060807;
-  /* Dark text on bright green fills */
+  /* ── ACCENT (Earthy Forest Green & Organic Touchpoints) ── */
+  --color-accent: #166534;
+  /* Rich premium forest green */
+  --color-accent-hover: #114e28;
+  /* Deep moss green for tactile feedback */
+  --color-accent-dim: rgba(22, 101, 52, 0.07);
+  /* Semi-transparent grass highlight */
+  --color-accent-text: #ffffff;
+  /* Pure white contrast text on accents */
 
-  /* ── GLASS OVERLAYS (used in dashboard) ── */
-  --color-glass: rgba(74, 222, 128, 0.03);
-  --color-glass-hover: rgba(74, 222, 128, 0.07);
-  --color-glass-border: rgba(74, 222, 128, 0.10);
-  --color-glass-glow: rgba(74, 222, 128, 0.25);
+  /* ── GLASS OVERLAYS (Light Organic Frosted Glassmorphism) ── */
+  --color-glass: rgba(255, 255, 255, 0.65);
+  --color-glass-hover: rgba(255, 255, 255, 0.85);
+  --color-glass-border: rgba(22, 101, 52, 0.12);
+  --color-glass-glow: rgba(22, 101, 52, 0.06);
 
-  /* ── TYPOGRAPHY ── */
-  --color-text-primary: #e2e8f0;
-  --color-text-muted: #86998d;
-  --color-text-label: #a3b8ab;
-  --color-text-secondary: rgba(226, 232, 240, 0.50);
-  --color-text-tertiary: rgba(226, 232, 240, 0.30);
+  /* ── TYPOGRAPHY (Deep Forest Charcoal for maximum legibility) ── */
+  --color-text-primary: #1d3a26;
+  /* Extremely rich organic dark charcoal */
+  --color-text-muted: #556c5e;
+  /* Muted sage for descriptions */
+  --color-text-label: #2d4a36;
+  /* Deep foliage tone for labels */
+  --color-text-secondary: rgba(18, 36, 23, 0.70);
+  --color-text-tertiary: rgba(18, 36, 23, 0.45);
 
-  /* ── STATUS COLORS ── */
-  --color-error: #ef4444;
-  --color-error-dim: rgba(239, 68, 68, 0.10);
-  --color-success: #4ade80;
-  --color-success-dim: rgba(74, 222, 128, 0.10);
-  --color-warning: #f59e0b;
-  --color-warning-dim: rgba(245, 158, 11, 0.10);
-  --color-collected: #38bdf8;
-  /* Blue for collected status markers */
+  /* ── STATUS COLORS (Natural earth & water tones) ── */
+  --color-error: #b23a22;
+  /* Earthy clay/terracotta red */
+  --color-error-dim: rgba(178, 58, 34, 0.08);
+  --color-success: #15803d;
+  /* Lush leaf green */
+  --color-success-dim: rgba(21, 128, 61, 0.08);
+  --color-warning: #c2410c;
+  /* Warm autumn rust amber */
+  --color-warning-dim: rgba(194, 65, 12, 0.08);
+  --color-collected: #0891b2;
+  /* Pure ocean blue-teal */
 
-  /* ── SEGREGATION TYPES ── */
-  --color-segregated: #4ade80;
-  --color-mixed: #fbbf24;
+  /* ── SEGREGATION & MIXED SPECIFICS ── */
+  --color-segregated: #166534;
+  --color-mixed: #b45309;
 
   /* ── TYPOGRAPHY STACKS ── */
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 
-  /* ── BORDER RADIUS ── */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* ── BORDER RADIUS (Organic soft round corners) ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
 
-  /* ── SHADOWS ── */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.50);
+  /* ── SHADOWS (Soft organic depth, no harsh blacks) ── */
+  --shadow-sm: 0 1px 3px rgba(22, 54, 33, 0.06);
+  --shadow-md: 0 4px 12px -1px rgba(22, 54, 33, 0.08);
+  --shadow-lg: 0 12px 24px -4px rgba(22, 54, 33, 0.12);
 
   /* ── TRANSITIONS ── */
-  --transition-base: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-speed: 0.2s;
+  --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-speed: 0.25s;
 
-  /* ── GRID BACKGROUND ── */
-  --grid-color: rgba(74, 222, 128, 0.03);
+  /* ── GRID BACKGROUND (Organic graph notebook grid) ── */
+  --grid-color: rgba(22, 101, 52, 0.05);
   --grid-size: 28px 28px;
 
   /* ── LAYOUT ── */
-  --header-height: 56px;
+  --header-height: 60px;
+}
+
+/* ============================================================
+   GLOBAL STYLE OVERRIDES — Eco Light Aesthetics & Blueprint Alignment
+   ============================================================ */
+
+/* ── GLOBAL BLUEPRINT BACKGROUND ── */
+body {
+  background-color: var(--color-bg) !important;
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px) !important;
+
+  background-size: var(--grid-size) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Ensure dashboard grid overlay matches */
+body::before {
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px) !important;
+}
+
+/* ── HEADER NAVIGATION GLASSIFICATION ── */
+.header-nav {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  backdrop-filter: blur(14px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.avatar {
+  background: var(--color-surface-alt) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-accent) !important;
+}
+
+/* ── TELEMETRY / FIELD SYSTEM CARDS & LISTS ── */
+.job-card,
+.points-log-item,
+.activity-item,
+.panel-main,
+.panel-sidebar .section-title,
+.stat-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.job-card,
+.points-log-item,
+.activity-item {
+  background: var(--color-glass) !important;
+  backdrop-filter: blur(8px);
+}
+
+.job-card:hover,
+.points-log-item:hover,
+.activity-item:hover {
+  background: var(--color-glass-hover) !important;
+  border-color: var(--color-border-focus) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-1px);
+}
+
+/* Coords badge background */
+.job-card-coords {
+  background: var(--color-accent-dim) !important;
+  color: var(--color-accent) !important;
+  border: 1px solid rgba(22, 101, 52, 0.1) !important;
+}
+
+/* Camera capture zones and modal radio button card grids */
+.camera-capture-zone {
+  background: var(--color-glass) !important;
+  border: 2px dashed var(--color-border) !important;
+}
+
+.camera-capture-zone:hover {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-dim) !important;
+}
+
+.classify-option-card {
+  background: var(--color-glass) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.classify-option input:checked+.classify-option-card {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-dim) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.opt-mixed input:checked+.classify-option-card {
+  border-color: var(--color-warning) !important;
+  background: var(--color-warning-dim) !important;
+}
+
+/* Modal details */
+.modal-job-info {
+  background: var(--color-surface-alt) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+}
+
+/* ── DASHBOARD GLOBE PAGE ADAPTATIONS ── */
+/* Translucent white-mint panels on the 3D globe visualization */
+.top-bar {
+  background: linear-gradient(180deg, rgba(238, 245, 241, 0.95) 0%, rgba(238, 245, 241, 0) 100%) !important;
+}
+
+/* Dashboard Vignette should blend into the pale sage palette instead of black */
+.vignette {
+  background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, var(--color-bg) 100%) !important;
+}
+
+/* Dashboard float panels */
+body .top-bar-right #loginBtn,
+body .stats-panel .stat-card,
+body .legend-panel {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid var(--color-glass-border) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--color-text-primary) !important;
+}
+
+body .top-bar-right #loginBtn:hover,
+body .stats-panel .stat-card:hover,
+body .legend-panel:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: var(--color-border-focus) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ── LEAFLET MAP & MODAL OVERLAYS ── */
+.leaflet-container {
+  background: var(--color-surface-alt) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-surface) !important;
+}
+
+.modal-overlay,
+.success-overlay {
+  background: rgba(18, 36, 23, 0.45) !important;
+  /* Elegant natural forest overlay tint */
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Success Card details */
+.success-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-accent) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ── FORM ELEMENTS / AUTHS ── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  background: var(--color-surface-alt) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-border-focus) !important;
+  background: var(--color-surface) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-dim) !important;
+}
+
+.card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-lg) !important;
 }

@@ -27,7 +27,7 @@ const mapMarkers = {};
 
 // ── Map ───────────────────────────────────────────────────────
 const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
 }).addTo(map);
 L.control.zoom({ position: 'topright' }).addTo(map);
